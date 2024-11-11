@@ -3,6 +3,7 @@ package generateQuiz
 import (
 	"context"
 	"fmt"
+	
 	"os"
 
 	"github.com/google/generative-ai-go/genai"
@@ -64,7 +65,7 @@ Now generate the quiz questions.`, topic, number, difficulty)
 func GenerateQuiz(quizRequest *types.QuizRequest) (any, error) {
 
 	if err := config.LoadEnvFile(".env"); err != nil {
-		return nil, err
+		fmt.Println("Error loading Env file",err)
 	}
 
 	ctx := context.Background()

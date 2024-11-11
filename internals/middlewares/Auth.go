@@ -18,8 +18,8 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if err := config.LoadEnvFile(".env"); err != nil {
-			http.Error(w, "LoadEnvFile error", http.StatusInternalServerError)
-			return
+			fmt.Println("LoadEnvFile error :", err ," statusCode:",http.StatusInternalServerError)
+			
 		}
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
