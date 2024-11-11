@@ -9,7 +9,7 @@ import (
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 
-	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/config"
+	//"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/config"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
 )
 
@@ -64,9 +64,9 @@ Now generate the quiz questions.`, topic, number, difficulty)
 
 func GenerateQuiz(quizRequest *types.QuizRequest) (any, error) {
 
-	if err := config.LoadEnvFile(".env"); err != nil {
-		fmt.Println("Error loading Env file",err)
-	}
+	// if err := config.LoadEnvFile(".env"); err != nil {
+	// 	fmt.Println("Error loading Env file",err)
+	// }
 
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("API_KEY")))

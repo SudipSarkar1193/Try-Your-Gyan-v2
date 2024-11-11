@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/config"
+	// "github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/config"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/response"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -17,10 +17,10 @@ import (
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		if err := config.LoadEnvFile(".env"); err != nil {
-			fmt.Println("LoadEnvFile error :", err ," statusCode:",http.StatusInternalServerError)
+		// if err := config.LoadEnvFile(".env"); err != nil {
+		// 	fmt.Println("LoadEnvFile error :", err ," statusCode:",http.StatusInternalServerError)
 			
-		}
+		// }
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
 
