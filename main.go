@@ -23,14 +23,14 @@ func main() {
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 
 	// Initialize database tables
-	database.CreateUserTable(db)
-	database.CreateQuizzesTable(db)
-	database.CreateQuestionsTable(db)
-	database.DisplayData(db)
+	// database.CreateUserTable(db)
+	// database.CreateQuizzesTable(db)
+	// database.CreateQuestionsTable(db)
+	// database.DisplayData(db) //For Testing
 
 	// Configure CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"}, // Replace with your allowed origins
+		AllowedOrigins:   []string{"http://localhost:5173","https://try-your-gyan.vercel.app"}, // Replace with your allowed origins
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
