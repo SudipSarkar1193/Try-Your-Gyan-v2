@@ -2,7 +2,8 @@ package config
 
 import (
 	"flag"
-	
+	"fmt"
+
 	"log"
 	"os"
 
@@ -25,7 +26,7 @@ type Config struct {
 func MustLoad() *Config {
 	// Attempt to load environment variables from a .env file (for local development)
 	if err := LoadEnvFile(".env"); err != nil {
-		log.Println("Warning: Could not load .env file:", err)
+		fmt.Println("Warning: Could not load .env file:", err)
 	}
 
 	// Attempt to load configuration from environment variables first
