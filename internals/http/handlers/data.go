@@ -105,7 +105,7 @@ func InsertQuestions(db *sql.DB) http.HandlerFunc {
 		// Validate each question
 		validate := validator.New()
 		for _, question := range questions {
-			
+
 			if err := validate.Struct(question); err != nil {
 				response.ValidateResponse(w, err)
 				return
@@ -175,8 +175,6 @@ func GetQuizQuestionsHandler(db *sql.DB) http.HandlerFunc {
 		quizIDStr := r.URL.Query().Get("quizID")
 
 		quizID, err := strconv.Atoi(quizIDStr)
-
-		
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Invalid Quiz Id : %v", err.Error()), http.StatusBadRequest)

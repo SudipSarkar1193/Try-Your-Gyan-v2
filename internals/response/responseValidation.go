@@ -17,13 +17,11 @@ func ValidateResponse(w http.ResponseWriter, errs interface{}) error {
 		case "email":
 			errMsgs = append(errMsgs, "invalid email")
 		case "required":
-			errMsgs = append(errMsgs, fmt.Sprintf("%s is required\n", err.Field()))
+			errMsgs = append(errMsgs, fmt.Sprintf("%s is required .\n", err.Field()))
 
 		default:
 			errMsgs = append(errMsgs, "Invalid Input !")
 		}
-
-		
 
 		http.Error(w, strings.Join(errMsgs, ","), http.StatusInternalServerError)
 

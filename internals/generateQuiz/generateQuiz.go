@@ -3,7 +3,7 @@ package generateQuiz
 import (
 	"context"
 	"fmt"
-	
+
 	"os"
 
 	"github.com/google/generative-ai-go/genai"

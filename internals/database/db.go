@@ -89,7 +89,6 @@ func CreateUserTable(db *sql.DB) {
 	}
 
 	fmt.Println("Table 'users' created or already exists.")
-	
 
 }
 
@@ -226,8 +225,6 @@ func InsertNewQuestions(tx *sql.Tx, questions []types.Question) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal options to JSON: %v", err)
 		}
-
-		
 
 		// Execute the insert statement with question data
 		_, err = stmt.Exec(

@@ -19,7 +19,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		// if err := config.LoadEnvFile(".env"); err != nil {
 		// 	fmt.Println("LoadEnvFile error :", err ," statusCode:",http.StatusInternalServerError)
-			
+
 		// }
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")

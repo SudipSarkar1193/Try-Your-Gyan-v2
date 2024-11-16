@@ -111,6 +111,7 @@ func Login(db *sql.DB) http.HandlerFunc {
 			Identifier string `json:"identifier" validate:"required"`
 			Password   string `json:"password" validate:"required"`
 		}
+		
 		err := json.NewDecoder(r.Body).Decode(&loginData)
 		if err != nil {
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)

@@ -35,3 +35,10 @@ type Question struct {
 	Description   string   `json:"description" db:"description"`
 	QuizID        int      `json:"quiz_id" validate:"required" db:"quiz_id"` // Foreign key to the quizzes table
 }
+
+type GoogleTokenInfo struct {
+	Email         string `json:"email"`
+	EmailVerified string `json:"email_verified"`
+	Name          string `json:"name"`
+	Picture       string `json:"picture"`
+}
