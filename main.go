@@ -19,27 +19,28 @@ import (
 )
 
 func main() {
+	// Load configuration and connect to the database
 	cfg := config.MustLoad()
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 
-	// Initialize database tables
-	// database.CreateUserTable(db)
-	// database.CreateQuizzesTable(db)
-	// database.CreateQuestionsTable(db)
-	// database.DisplayData(db) //For Testing
+	// Initialize Firebase Auth client
+	handlers.InitializeFirebaseApp()
 
 	// Configure CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173","https://try-your-gyan.vercel.app"}, // Replace with your allowed origins
+		AllowedOrigins:   []string{"http://localhost:5173", "https://try-your-gyan.vercel.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
 
-	// Setup router
+	// Initialize router
 	router := http.NewServeMux()
+
+	// Set up routes
 	router.HandleFunc("/api/users/new", handlers.New(db))
 	router.HandleFunc("/api/users/login", handlers.Login(db))
+	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
 	router.HandleFunc("/api/quiz/questions/new", middlewares.AuthMiddleware(handlers.InsertQuestions(db)))
@@ -47,10 +48,10 @@ func main() {
 	router.HandleFunc("/api/quiz/questions", middlewares.AuthMiddleware(handlers.GetQuizQuestionsHandler(db)))
 	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails()))
 
-	// Wrap router with CORS middleware
-	handler := c.Handler(router)
+	// Wrap the router with middlewares: CORS first, then COOP
+	handler := middlewares.CoopMiddleware(c.Handler(router))
 
-	// Setup server
+	// Setup HTTP server
 	server := http.Server{
 		Addr:    cfg.Addr,
 		Handler: handler,
@@ -58,10 +59,10 @@ func main() {
 
 	slog.Info("Server started at", slog.String("PORT", cfg.Addr))
 
+	// Graceful shutdown setup
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start server in a goroutine
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal("Failed to start server:", err)
@@ -71,7 +72,7 @@ func main() {
 	<-done
 	slog.Info("Shutting down the server...")
 
-	// Logic to gracefully shut down the server
+	// Gracefully shutdown the server with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -80,6 +81,4 @@ func main() {
 	} else {
 		slog.Info("Server shut down successfully")
 	}
-
-	//database.DisplayData(db)
 }

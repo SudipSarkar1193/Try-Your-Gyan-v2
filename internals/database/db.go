@@ -143,17 +143,18 @@ func CreateQuestionsTable(db *sql.DB) {
 
 /*--------------------------------------------------------------------------------------------------*/
 
-func InsertNewUser(db *sql.DB, user *types.User) error {
+func InsertNewUser(db *sql.DB, user *types.User) (int64, error) {
 	query := "INSERT INTO users (username,email,password) VALUES ($1, $2, $3) RETURNING id"
 
 	// QueryRow allows us to capture the returned id, Exec doesn't
 	err := db.QueryRow(query, user.Username, user.Email, user.Password).Scan(&user.Id)
 	if err != nil {
-		return err
+		return -1, nil
 	}
 
 	fmt.Printf("New student inserted with ID: %d\n", user.Id)
-	return nil
+
+	return user.Id, nil
 }
 
 /*--------------------------------------------------------------------------------------*/

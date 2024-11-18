@@ -88,7 +88,7 @@ func New(db *sql.DB) http.HandlerFunc {
 
 		user.Password = hashpass
 
-		if err := database.InsertNewUser(db, &user); err != nil {
+		if _, err := database.InsertNewUser(db, &user); err != nil {
 			http.Error(w, fmt.Sprintf("Database error : %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -111,7 +111,7 @@ func Login(db *sql.DB) http.HandlerFunc {
 			Identifier string `json:"identifier" validate:"required"`
 			Password   string `json:"password" validate:"required"`
 		}
-		
+
 		err := json.NewDecoder(r.Body).Decode(&loginData)
 		if err != nil {
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)
