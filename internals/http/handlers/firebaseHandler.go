@@ -18,6 +18,11 @@ import (
 // HandleFirebaseAuth handles Firebase authentication for users
 func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		fmt.Println()
+		fmt.Println("HIT HandleFirebaseAuth")
+		fmt.Println()
+
 		ctx := context.Background()
 		idToken := r.Header.Get("Authorization")
 		
