@@ -21,10 +21,9 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		// 	fmt.Println("LoadEnvFile error :", err ," statusCode:",http.StatusInternalServerError)
 
 		// }
+		
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
-		
-		
 
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			http.Error(w, "Authorization header is required !", http.StatusUnauthorized)
@@ -33,7 +32,6 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-		
 		// Parse and validate the token
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
