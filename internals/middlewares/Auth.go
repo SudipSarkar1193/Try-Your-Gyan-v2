@@ -23,13 +23,19 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		// }
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
+		
+		fmt.Println("authHeader",authHeader)
 
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			http.Error(w, "Authorization header is required !", http.StatusUnauthorized)
 			return
 		}
 
+		
+
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+
+		fmt.Println("tokenStr",tokenStr)
 
 		// Parse and validate the token
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
