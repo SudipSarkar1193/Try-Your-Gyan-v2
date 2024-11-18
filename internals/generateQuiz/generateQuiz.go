@@ -22,7 +22,7 @@ func generatePrompt(topic string, number int, difficulty string) string {
 	
 	### Instructions:
 	1. Create an array of quiz questions in the following format:
-	[
+	[ 
 	  { "ok": true }, 
 	  [
 		{
@@ -49,12 +49,17 @@ func generatePrompt(topic string, number int, difficulty string) string {
 	
 	### Fallback Response:
 	- If the topic is inappropriate or you cannot generate questions, return:
-	[
+	[ 
 	  { "ok": false }, 
 	  ["The requested topic is inappropriate or cannot be used to generate quiz questions."]
 	]
+
+	Always generate the response as an array containing two elements. The first element should be an object with the key "ok", and the second element should be an array (either of questions in case of success or a single error message in case of failure/fallback). Always adhere to this structure, regardless of whether the generation was successful.
+
+	Now generate the quiz by strictly following the structure.
 	`, topic, number, difficulty)
 }
+
 
 func GenerateQuiz(quizRequest *types.QuizRequest) (any, error) {
 
