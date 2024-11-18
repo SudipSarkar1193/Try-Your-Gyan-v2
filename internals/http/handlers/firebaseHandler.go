@@ -25,13 +25,12 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 
 		ctx := context.Background()
 		idToken := r.Header.Get("Authorization")
-		
+
 		if idToken == "" || !strings.HasPrefix(idToken, "Bearer ") {
 			http.Error(w, "Missing or invalid Authorization token", http.StatusUnauthorized)
 			return
 		}
 		idToken = strings.TrimPrefix(idToken, "Bearer ")
-		
 
 		// Validate Firebase token
 		token, err := VerifyIDToken(ctx, idToken)

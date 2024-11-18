@@ -37,12 +37,12 @@ func InitializeFirebaseApp() {
 		log.Fatalf("Failed to initialize Firebase Auth client: %v", err)
 	}
 
-	log.Println("Firebase Auth initialized successfully",FirebaseAuthClient)
+	log.Println("Firebase Auth initialized successfully", FirebaseAuthClient)
 }
 
 // Verify Firebase ID Token
 func VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
-	
+
 	if FirebaseAuthClient == nil {
 		return nil, fmt.Errorf("firebase Auth client not initialized")
 	}
