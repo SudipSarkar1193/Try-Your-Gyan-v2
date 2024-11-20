@@ -63,6 +63,8 @@ func generatePrompt(topic string, number int, difficulty string) string {
 
 func GenerateQuiz(quizRequest *types.QuizRequest) (any, error) {
 
+	fmt.Println()
+	fmt.Println("Point 1")
 	// if err := config.LoadEnvFile(".env"); err != nil {
 	// 	fmt.Println("Error loading Env file",err)
 	// }
@@ -73,18 +75,19 @@ func GenerateQuiz(quizRequest *types.QuizRequest) (any, error) {
 		return nil, err
 	}
 	defer client.Close()
-
+	fmt.Println("Point 2")
 	model := client.GenerativeModel("gemini-1.5-flash")
 	model.GenerationConfig = genai.GenerationConfig{
 		ResponseMIMEType: "application/json",
 	}
-
+	fmt.Println("Point 3")
 	prompt := generatePrompt(quizRequest.Topic, quizRequest.NumQuestions, quizRequest.Difficulty)
-
+	fmt.Println("Point 4")
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Point 5")
 
 	return resp, nil
 
