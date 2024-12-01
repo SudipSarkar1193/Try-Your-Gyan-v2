@@ -96,7 +96,7 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 						return
 					}
 
-					if user.ProfileImg == "https://res.cloudinary.com/dvsutdpx2/image/upload/v1732181213/ryi6ouf4e0mwcgz1tcxx.png" {
+					if user.ProfileImg == "" || user.ProfileImg == "https://res.cloudinary.com/dvsutdpx2/image/upload/v1732181213/ryi6ouf4e0mwcgz1tcxx.png" {
 
 						database.UserFindByEmailAndUpdateProfileImg(db, user.Email, requestData.ProfileImg)
 					}
@@ -126,9 +126,9 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			if user.ProfileImg == "https://res.cloudinary.com/dvsutdpx2/image/upload/v1732181213/ryi6ouf4e0mwcgz1tcxx.png" {
+			if user.ProfileImg == "https://res.cloudinary.com/dvsutdpx2/image/upload/v1732181213/ryi6ouf4e0mwcgz1tcxx.png" || user.ProfileImg == "" {
 
-				database.UserFindByEmailAndUpdateProfileImg(db, user.Email, requestData.ProfileImg)
+				database.UserFindByEmailAndUpdateProfileImg(db, requestData.Email, requestData.ProfileImg)
 			}
 
 			if !user.IsVarified {

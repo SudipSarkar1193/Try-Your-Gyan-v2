@@ -110,6 +110,7 @@ func SendOTPEmail(to, otp string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Println("email err : ", err)
 		return err
 	}
 	defer resp.Body.Close()

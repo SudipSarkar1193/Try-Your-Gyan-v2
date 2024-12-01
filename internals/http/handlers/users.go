@@ -66,10 +66,8 @@ func New(db *sql.DB) http.HandlerFunc {
 		}
 
 		existingUserWithEmail, _ := database.RetrieveUser(db, user.Email)
-		
 
 		existingUserWithUsername, _ := database.RetrieveUser(db, user.Username)
-		
 
 		if existingUserWithEmail != nil {
 			http.Error(w, fmt.Sprintf("User with the email : %v already exists", existingUserWithEmail.Email), http.StatusBadRequest)
