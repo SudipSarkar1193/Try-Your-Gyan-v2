@@ -20,9 +20,6 @@ import (
 func GenerateQuiz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		fmt.Println();
-		fmt.Println("Entered in GenerateQuiz()");
-		fmt.Println();
 		if r.Method != http.MethodPost {
 			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
 			return
@@ -43,9 +40,6 @@ func GenerateQuiz() http.HandlerFunc {
 
 		resp := response.CreateResponse(data, 200, "Quiz generated successfully")
 
-		fmt.Println();
-		fmt.Println("Gonna exit GenerateQuiz()");
-		fmt.Println();
 		response.WriteResponse(w, resp)
 	}
 }

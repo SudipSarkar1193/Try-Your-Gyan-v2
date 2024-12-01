@@ -60,14 +60,10 @@ func generatePrompt(topic string, number int, difficulty string) string {
 	`, topic, number, difficulty)
 }
 
-
 func GenerateQuiz(quizRequest *types.QuizRequest) (any, error) {
 
 	fmt.Println()
 	fmt.Println("Point 1")
-	// if err := config.LoadEnvFile(".env"); err != nil {
-	// 	fmt.Println("Error loading Env file",err)
-	// }
 
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("API_KEY")))

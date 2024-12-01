@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 
@@ -14,8 +17,14 @@ import (
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/password"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/response"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
+	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/utils/email"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/utils/tokens"
 )
+
+func GenerateRandomString() string {
+	rand.Seed(time.Now().UnixNano())                 // Seed to ensure randomness
+	return fmt.Sprintf("%04d", 1000+rand.Intn(9000)) // Generate number [1000, 9999] and format to 4 digits
+}
 
 func New(db *sql.DB) http.HandlerFunc {
 
@@ -56,12 +65,29 @@ func New(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		// Validate that all fields are filled
-		// if student.Id == 0 || student.Name == "" || student.Email == "" {
-		// 	http.Error(w, "all fields are required !", http.StatusBadRequest)
-		// 	return
+		existingUserWithEmail, err := database.RetrieveUser(db, user.Email)
+		if err != nil {
 
-		// }
+			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		existingUserWithUsername, err := database.RetrieveUser(db, user.Username)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if existingUserWithEmail != nil {
+			http.Error(w, fmt.Sprintf("User with the email : %v already exists", existingUserWithEmail.Email), http.StatusBadRequest)
+			return
+		}
+		if existingUserWithUsername != nil {
+			http.Error(w, fmt.Sprintf("User with the username : %v already exists", existingUserWithUsername.Username), http.StatusBadRequest)
+			return
+		}
 
 		var validate *validator.Validate
 
@@ -88,12 +114,31 @@ func New(db *sql.DB) http.HandlerFunc {
 
 		user.Password = hashpass
 
-		if _, err := database.InsertNewUser(db, &user); err != nil {
+		user_id, err := database.InsertNewUser(db, &user)
+		if err != nil {
 			http.Error(w, fmt.Sprintf("Database error : %v", err), http.StatusInternalServerError)
 			return
 		}
+		token, err := tokens.GenerateVerifyToken(&user)
 
-		emptyResponse := response.CreateResponse(user, http.StatusCreated, "User created Successfully", "<DeveloperMessage>", "<UserMessage>", false, "Err")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Could not generate tokens : %v", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		// Send tokens as JSON response
+		tokenResponse := map[string]string{
+			"verify_token": token,
+		}
+
+		//insert otp to database :
+		otp := GenerateRandomString()
+
+		database.InsertNewOTP(db, otp, user_id)
+
+		email.SendOTPEmail(user.Email, otp)
+
+		emptyResponse := response.CreateResponse(tokenResponse, http.StatusCreated, "User created Successfully", "<DeveloperMessage>", "<UserMessage>", false, "Err")
 
 		response.WriteResponse(w, emptyResponse)
 
@@ -145,12 +190,131 @@ func Login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		//Check if varified :
+		if !user.IsVarified {
+			verifyToken, err := tokens.GenerateVerifyToken(user)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Could not generate tokens : %v", err.Error()), http.StatusInternalServerError)
+				return
+			}
+			tokenResponse := map[string]any{
+				"access_token":  accessToken,
+				"refresh_token": refreshToken,
+				"verify_token":  verifyToken,
+				"username":      user.Username,
+				"isNotVarified": true,
+			}
+
+			response.WriteResponse(w, response.CreateResponse(tokenResponse, http.StatusOK, "Logged in successfully", "", "", false, ""))
+			return
+		}
+
 		// Send tokens as JSON response
-		tokenResponse := map[string]string{
+		tokenResponse := map[string]any{
 			"access_token":  accessToken,
 			"refresh_token": refreshToken,
 			"username":      user.Username,
+			"isVarified":    user.IsVarified,
 		}
+
 		response.WriteResponse(w, response.CreateResponse(tokenResponse, http.StatusOK, "Logged in successfully", "", "", false, ""))
+	}
+}
+
+func VerifyUser(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodPost {
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+			return
+		}
+
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		//Retrive the token from the database:
+
+		otp, err := database.RetrieveOTP(db, userID)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error retrieving otp from Database, %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		var reqData struct {
+			OTP string `json:"otp" validate:"required"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
+
+		validate := validator.New()
+		if err := validate.Struct(reqData); err != nil {
+			response.ValidateResponse(w, err)
+			return
+		}
+
+		if otp == reqData.OTP {
+
+			if err := database.UpdateUserById(db, int64(userID), true); err != nil {
+				http.Error(w, fmt.Sprintf("Error updating user from Database, %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Verified successfully", "", "", false, ""))
+			return
+
+		} else {
+			http.Error(w, "Wrong OTP", http.StatusBadRequest)
+			return
+		}
+
+	}
+}
+
+func RequestNewOTP(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+			return
+		}
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		//Generate OTP and update :
+
+		otp := GenerateRandomString()
+
+		database.UpdateOtpForUser(db, userID, otp)
+
+		user, err := database.RetrieveUser(db, userID)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		if err := email.SendOTPEmail(user.Email, otp); err != nil {
+			http.Error(w, fmt.Sprintf("Error sending email : %v", err.Error()), http.StatusBadRequest)
+			return
+		}
+
+		response.WriteResponse(w, response.CreateResponse(otp, http.StatusOK, "New OTP has been sent to the registered email"))
+
 	}
 }

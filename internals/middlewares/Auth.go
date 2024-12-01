@@ -1,12 +1,16 @@
 package middlewares
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	// "github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/config"
+
+	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/database"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/response"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -17,11 +21,6 @@ import (
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// if err := config.LoadEnvFile(".env"); err != nil {
-		// 	fmt.Println("LoadEnvFile error :", err ," statusCode:",http.StatusInternalServerError)
-
-		// }
-		
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
 
@@ -61,22 +60,65 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func GetUserDetails() http.HandlerFunc {
+func GetUserDetails(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userId := r.Header.Get("userId")
-		username := r.Header.Get("username")
-
-		userDetails := struct {
-			Id       string `json:"id"`
-			Username string `json:"username"`
-		}{
-			Id:       userId,
-			Username: username,
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+			http.Error(w, "Invalid user ID", http.StatusBadRequest)
+			return
 		}
 
-		resp := response.CreateResponse(userDetails, 200, "User-details retrieved succesfully")
+		user, err := database.RetrieveUser(db, userID)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Couldn't retrieve the user : %v", err), http.StatusInternalServerError)
+		}
+
+		resp := response.CreateResponse(user, 200, "User-details retrieved succesfully")
 
 		response.WriteResponse(w, resp)
+	}
+}
+
+func VerifyUserMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
+		authHeader := r.Header.Get("Authorization")
+
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			http.Error(w, "Authorization header is required !", http.StatusUnauthorized)
+			return
+		}
+
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Parse and validate the token
+		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid { // !token.Valid: If the token itself is invalid (e.g., incorrect signature or expired)
+			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+			return
+		}
+
+		// Extract user information from token claims
+		claims, ok := token.Claims.(jwt.MapClaims)
+
+		if ok && token.Valid {
+			// Attach user ID to request context
+			r.Header.Set("userID", fmt.Sprintf("%v", claims["sub"]))
+		} else {
+			http.Error(w, "Could not parse token claims", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	}
 }
 

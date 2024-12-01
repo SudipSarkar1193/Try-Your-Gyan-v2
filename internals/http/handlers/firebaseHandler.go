@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 
@@ -18,10 +19,6 @@ import (
 // HandleFirebaseAuth handles Firebase authentication for users
 func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		fmt.Println()
-		fmt.Println("HIT HandleFirebaseAuth")
-		fmt.Println()
 
 		ctx := context.Background()
 		idToken := r.Header.Get("Authorization")
@@ -47,25 +44,75 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 			Email      string `json:"email"`
 			FirebaseId string `json:"firebaseId"`
 			IsNewUser  bool   `json:"isNewUser"`
+			ProfileImg string `json:"profileImg"`
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			http.Error(w, "Invalid JSON ", http.StatusBadRequest)
 			return
 		}
 
 		var user *types.User
+		var isCondHit1 bool
+		var isCondHit2 bool
+
 		if requestData.IsNewUser {
+			cleanedUsername := strings.ReplaceAll(requestData.Username, " ", "")
+
+			var uniqueUsername string
+			for {
+				randomNumber := rand.Intn(900) + 100
+				generatedUsername := fmt.Sprintf("%s%d", cleanedUsername, randomNumber)
+
+				exists, err := database.UsernameExists(db, generatedUsername)
+				if err != nil {
+					http.Error(w, fmt.Sprintf("Database error: %v", err), http.StatusInternalServerError)
+					return
+				}
+
+				if !exists {
+					uniqueUsername = generatedUsername
+					break
+				}
+			}
+
 			// Register new user
 			user = &types.User{
-				Username: requestData.Username,
-				Email:    requestData.Email,
-				Password: requestData.FirebaseId,
+				Username:   uniqueUsername,
+				Email:      requestData.Email,
+				Password:   requestData.FirebaseId,
+				IsVarified: true,
+				ProfileImg: requestData.ProfileImg,
 			}
 
 			id, err := database.InsertNewUser(db, user)
 			if err != nil {
-				http.Error(w, fmt.Sprintf("Database error: %v", err), http.StatusInternalServerError)
+				if strings.Contains(err.Error(), `duplicate key value violates unique constraint "users_email_key"`) {
+					// Retrieve that existing user
+					user, err = database.RetrieveUser(db, requestData.Email)
+					if err != nil {
+						log.Printf("Error retrieving user: %v", err)
+						http.Error(w, fmt.Sprintf("Error retrieving user: %v", err), http.StatusInternalServerError)
+						return
+					}
+
+					if user.ProfileImg == "https://res.cloudinary.com/dvsutdpx2/image/upload/v1732181213/ryi6ouf4e0mwcgz1tcxx.png" {
+
+						database.UserFindByEmailAndUpdateProfileImg(db, user.Email, requestData.ProfileImg)
+					}
+
+					if !user.IsVarified {
+						isCondHit1 = true
+						database.UpdateUserById(db, user.Id, true)
+					}
+
+					isCondHit2 = true
+
+					// Jump to POINT 01
+					goto POINT01
+				}
+
+				http.Error(w, fmt.Sprintf("Error inserting new user: %v", err), http.StatusInternalServerError)
 				return
 			}
 			user.Id = id
@@ -75,17 +122,27 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 			user, err = database.RetrieveUser(db, requestData.Email)
 			if err != nil {
 				log.Printf("Error retrieving user: %v", err)
-				http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+				http.Error(w, fmt.Sprintf("Error retrieving user: %v", err), http.StatusInternalServerError)
 				return
+			}
+
+			if user.ProfileImg == "https://res.cloudinary.com/dvsutdpx2/image/upload/v1732181213/ryi6ouf4e0mwcgz1tcxx.png" {
+
+				database.UserFindByEmailAndUpdateProfileImg(db, user.Email, requestData.ProfileImg)
+			}
+
+			if !user.IsVarified {
+				database.UpdateUserById(db, user.Id, true)
 			}
 
 			if user == nil {
 				log.Println("No user found")
-				http.Error(w, "No user found", http.StatusUnauthorized)
+				http.Error(w, "No user found", http.StatusInternalServerError)
 				return
 			}
 		}
 
+	POINT01:
 		// Generate tokens
 		accessToken, refreshToken, err := tokens.GenerateTokens(user)
 		if err != nil {
@@ -105,6 +162,16 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Write response
-		response.WriteResponse(w, response.CreateResponse(responseData, http.StatusOK, "Logged in successfully", "", "", false, ""))
+		msg := "Logged in successfully with Google"
+		if isCondHit2 {
+
+			if isCondHit1 {
+				msg = "This email is now varified"
+			} else {
+				msg = "This email is already varified using OTP"
+			}
+
+		}
+		response.WriteResponse(w, response.CreateResponse(responseData, http.StatusOK, msg, "", "", false, ""))
 	}
 }

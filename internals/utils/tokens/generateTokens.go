@@ -8,12 +8,30 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+func GenerateVerifyToken(user *types.User) (string, error) {
+
+	tokenClaims := jwt.MapClaims{
+		"sub":  user.Id,
+		"name": user.Username,
+		"exp":  time.Now().Add(20 * time.Minute).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, tokenClaims)
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET_KEY")))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
 func GenerateTokens(user *types.User) (string, string, error) {
 
 	accessTokenClaims := jwt.MapClaims{
 		"sub":  user.Id,
 		"name": user.Username,
-		"exp":  time.Now().Add(15 * time.Minute).Unix(),
+		"exp":  time.Now().Add(18 * time.Minute).Unix(),
 	}
 	refreshTokenClaims := jwt.MapClaims{
 		"sub": user.Id,

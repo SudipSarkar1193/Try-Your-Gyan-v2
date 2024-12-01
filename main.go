@@ -24,7 +24,7 @@ func main() {
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 
 	// if err := config.LoadEnvFile(".env"); err != nil {
-	// 	log.Println("Error loading Env file",err)
+	// 	log.Println("Error loading Env file", err)
 	// }
 
 	// Initialize Firebase Auth client
@@ -45,12 +45,14 @@ func main() {
 	router.HandleFunc("/api/users/new", handlers.New(db))
 	router.HandleFunc("/api/users/login", handlers.Login(db))
 	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
+	router.HandleFunc("/api/users/auth/verify", middlewares.VerifyUserMiddleware(handlers.VerifyUser(db)))
+	router.HandleFunc("/api/users/auth/newotp", middlewares.VerifyUserMiddleware(handlers.RequestNewOTP(db)))
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
 	router.HandleFunc("/api/quiz/questions/new", middlewares.AuthMiddleware(handlers.InsertQuestions(db)))
 	router.HandleFunc("/api/quiz/quizzes", middlewares.AuthMiddleware(handlers.GetUserQuizzesHandler(db)))
 	router.HandleFunc("/api/quiz/questions", middlewares.AuthMiddleware(handlers.GetQuizQuestionsHandler(db)))
-	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails()))
+	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails(db)))
 
 	// Wrap the router with middlewares: CORS first, then COOP
 	handler := middlewares.CoopMiddleware(c.Handler(router))
