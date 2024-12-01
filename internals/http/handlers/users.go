@@ -65,20 +65,11 @@ func New(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		existingUserWithEmail, err := database.RetrieveUser(db, user.Email)
-		if err != nil {
+		existingUserWithEmail, _ := database.RetrieveUser(db, user.Email)
+		
 
-			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		existingUserWithUsername, err := database.RetrieveUser(db, user.Username)
-		if err != nil {
-			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		existingUserWithUsername, _ := database.RetrieveUser(db, user.Username)
+		
 
 		if existingUserWithEmail != nil {
 			http.Error(w, fmt.Sprintf("User with the email : %v already exists", existingUserWithEmail.Email), http.StatusBadRequest)
