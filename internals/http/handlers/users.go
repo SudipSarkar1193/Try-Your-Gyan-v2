@@ -258,6 +258,8 @@ func VerifyUser(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
+			database.DeleteOTPbyUserId(db,userID)
+
 			response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Verified successfully", "", "", false, ""))
 			return
 
@@ -288,7 +290,16 @@ func RequestNewOTP(db *sql.DB) http.HandlerFunc {
 
 		otp := GenerateRandomString()
 
-		database.UpdateOtpForUser(db, userID, otp)
+		err=database.UpdateOtpForUser(db, userID, otp)
+		if err !=nil {
+           fmt.Println(err);
+		   _,err = database.InsertNewOTP(db,otp,int64(userID))
+
+		   if err!=nil{
+			http.Error(w, fmt.Sprintf("Database Error : %v", err.Error()), http.StatusBadRequest)
+			return
+		   } 
+		}
 
 		user, err := database.RetrieveUser(db, userID)
 		if err != nil {

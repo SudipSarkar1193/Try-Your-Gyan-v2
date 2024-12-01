@@ -32,7 +32,7 @@ func DisplayData(db *sql.DB) {
 	fmt.Println("INSIDE func DisplayData")
 	fmt.Println()
 	// Replace 'your_table' with the name of your table
-	rows, err := db.Query("SELECT * FROM users")
+	rows, err := db.Query("SELECT * FROM quizzes")
 	if err != nil {
 		log.Fatal("r =>", err)
 	}
@@ -244,6 +244,57 @@ func UpdateOtpForUser(db *sql.DB, userID int, newOtp string) error {
 	return nil
 }
 
+/****************************************************************************************************/
+
+func DeleteOTPbyUserId(db *sql.DB, id int) error {
+	// Prepare the SQL statement
+	query := "DELETE FROM otp_table WHERE user_id = $1"
+
+	// Execute the query
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete OTP: %w", err)
+	}
+
+	// Check the number of rows affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no OTP found for user ID %d", id)
+	}
+
+	return nil
+}
+//******************************************************************************************/
+
+
+func DeleteQuizById(db *sql.DB, id int)error{
+	query := "DELETE FROM quizzes WHERE id = $1"
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete the Quiz: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	fmt.Println("rowsAffected (DeleteQuizById)",rowsAffected)
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no Quiz found for the ID %d", id)
+	}
+
+	return nil
+}
+
+
+
+
 /*--------------------------------------------------------------------------------------------------*/
 
 func InsertNewUser(db *sql.DB, user *types.User) (int64, error) {
@@ -326,7 +377,7 @@ func RetrieveOTP(db *sql.DB, userID int) (string, error) {
 	}
 	return otp, nil
 }
-
+//******************************************************************/
 func InsertNewOTP(db *sql.DB, otp string, user_id int64) (int64, error) {
 	query := "INSERT INTO otp_table (user_id,otp) VALUES ($1, $2) RETURNING id"
 

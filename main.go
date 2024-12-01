@@ -27,6 +27,8 @@ func main() {
 	// 	log.Println("Error loading Env file", err)
 	// }
 
+	database.DisplayData(db)
+
 	// Initialize Firebase Auth client
 	handlers.InitializeFirebaseApp()
 
@@ -50,7 +52,18 @@ func main() {
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
 	router.HandleFunc("/api/quiz/questions/new", middlewares.AuthMiddleware(handlers.InsertQuestions(db)))
-	router.HandleFunc("/api/quiz/quizzes", middlewares.AuthMiddleware(handlers.GetUserQuizzesHandler(db)))
+	
+	router.HandleFunc("/api/quiz/quizzes", middlewares.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetUserQuizzesHandler(db)(w, r) // Call the GET handler
+		case http.MethodDelete:
+			handlers.DeleteQuiz(db)(w, r) // Call the DELETE handler
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	router.HandleFunc("/api/quiz/questions", middlewares.AuthMiddleware(handlers.GetQuizQuestionsHandler(db)))
 	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails(db)))
 
