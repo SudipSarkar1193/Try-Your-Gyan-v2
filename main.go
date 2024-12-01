@@ -27,7 +27,7 @@ func main() {
 	// 	log.Println("Error loading Env file", err)
 	// }
 
-	database.DisplayData(db)
+	// database.DisplayData(db)
 
 	// Initialize Firebase Auth client
 	handlers.InitializeFirebaseApp()
