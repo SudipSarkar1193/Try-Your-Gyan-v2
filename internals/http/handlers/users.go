@@ -126,6 +126,7 @@ func New(db *sql.DB) http.HandlerFunc {
 		database.InsertNewOTP(db, otp, user_id)
 
 		email.SendOTPEmail(user.Email, otp)
+		
 
 		emptyResponse := response.CreateResponse(tokenResponse, http.StatusCreated, "User created Successfully", "<DeveloperMessage>", "<UserMessage>", false, "Err")
 
@@ -161,14 +162,14 @@ func Login(db *sql.DB) http.HandlerFunc {
 		// Retrieve user by email or username
 		user, err := database.RetrieveUser(db, loginData.Identifier)
 		if err != nil {
-			http.Error(w, "user not found : Invalid credentials", http.StatusUnauthorized)
+			http.Error(w, "user not found", http.StatusUnauthorized)
 			return
 		}
 
 		// Check password
 		isPasswordValid, err := password.CheckPassword(loginData.Password, user.Password)
 		if err != nil || !isPasswordValid {
-			http.Error(w, "user not found : Invalid credentials", http.StatusUnauthorized)
+			http.Error(w, "Wrong password", http.StatusUnauthorized)
 			return
 		}
 
