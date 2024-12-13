@@ -31,7 +31,7 @@ func main() {
 	handlers.InitializeFirebaseApp()
 
 	// Configure CORS
-	cors.New(cors.Options{
+	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173", "https://try-your-gyan.vercel.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
@@ -97,16 +97,15 @@ func main() {
 	// handler := c.Handler(router)
 	// handler = middlewares.CoopMiddleware(handler)
 
-	///****
+	///***
 
 	// handler := middlewares.DebugOriginMiddleware(c.Handler(router))
 	// handler = middlewares.CoopMiddleware(handler)
 	// handler = middlewares.DebugMiddleware(handler)
 
-	//*******
 
-	// handler := middlewares.DebugOriginMiddleware(c.Handler(router))
-	handler := middlewares.DebugOriginMiddleware(router) // No `c.Handler`
+	//*********************
+	handler := middlewares.DebugOriginMiddleware(c.Handler(router))
 	handler = middlewares.HandleOptionsMiddleware(handler)
 	handler = middlewares.CoopMiddleware(handler)
 	handler = middlewares.DebugMiddleware(handler)
