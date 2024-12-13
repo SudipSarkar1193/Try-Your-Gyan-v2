@@ -59,7 +59,6 @@ func HandleOptionsMiddleware(next http.Handler) http.Handler {
 
 		log.Println()
 		log.Println("Inside HandleOptionsMiddleware")
-		log.Println()
 
 		if r.Method == http.MethodOptions {
 			// Add CORS headers for preflight requests
@@ -71,6 +70,8 @@ func HandleOptionsMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		log.Println()
+
 		next.ServeHTTP(w, r)
 	})
 

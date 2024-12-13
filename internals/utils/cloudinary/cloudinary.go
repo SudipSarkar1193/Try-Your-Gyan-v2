@@ -43,7 +43,6 @@ func UploadImage(cld *cloudinary.Cloudinary, ctx context.Context, base64Image st
 	return resp.SecureURL, nil
 }
 
-
 func DeleteImage(cld *cloudinary.Cloudinary, ctx context.Context, imageURL string) error {
 	// Extract the public ID from the Cloudinary URL
 	parts := strings.Split(imageURL, "/")
