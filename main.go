@@ -36,6 +36,7 @@ func main() {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
+		Debug:            true, // Enable for debugging CORS issues
 	})
 
 	// Initialize router
@@ -47,7 +48,7 @@ func main() {
 	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
 	router.HandleFunc("/api/users/auth/verify", middlewares.VerifyUserMiddleware(handlers.VerifyUser(db)))
 	router.HandleFunc("/api/users/auth/newotp", middlewares.VerifyUserMiddleware(handlers.RequestNewOTP(db)))
-	router.Handle("/api/users/update-profile-pic", c.Handler(middlewares.AuthMiddleware(handlers.UpdateProfilePic(db))))
+	router.Handle("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
 
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
@@ -67,8 +68,8 @@ func main() {
 	router.HandleFunc("/api/quiz/questions", middlewares.AuthMiddleware(handlers.GetQuizQuestionsHandler(db)))
 	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails(db)))
 
-	// Combine middlewares: CORS first, then HandleOptionsMiddleware, then COOP
-	handler := c.Handler(middlewares.HandleOptionsMiddleware(router))
+	// Combine middlewares: CORS first, then COOP
+	handler := c.Handler(router)
 	handler = middlewares.CoopMiddleware(handler)
 
 	// Setup HTTP server
@@ -102,3 +103,4 @@ func main() {
 		slog.Info("Server shut down successfully")
 	}
 }
+
