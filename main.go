@@ -31,7 +31,7 @@ func main() {
 	handlers.InitializeFirebaseApp()
 
 	// Configure CORS
-	c := cors.New(cors.Options{
+	cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173", "https://try-your-gyan.vercel.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
