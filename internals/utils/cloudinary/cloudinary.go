@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
@@ -40,4 +41,28 @@ func UploadImage(cld *cloudinary.Cloudinary, ctx context.Context, base64Image st
 
 	// Return the secure URL of the uploaded image
 	return resp.SecureURL, nil
+}
+
+
+func DeleteImage(cld *cloudinary.Cloudinary, ctx context.Context, imageURL string) error {
+	// Extract the public ID from the Cloudinary URL
+	parts := strings.Split(imageURL, "/")
+	if len(parts) < 2 {
+		return fmt.Errorf("invalid image URL format")
+	}
+
+	// The public ID includes the file name and may include a file extension.
+	// Extract the part after the final '/' and before the optional file extension.
+	lastPart := parts[len(parts)-1]
+	publicID := strings.Split(lastPart, ".")[0]
+
+	// Call the Cloudinary API to delete the image
+	_, err := cld.Upload.Destroy(ctx, uploader.DestroyParams{
+		PublicID: publicID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete image: %w", err)
+	}
+
+	return nil
 }

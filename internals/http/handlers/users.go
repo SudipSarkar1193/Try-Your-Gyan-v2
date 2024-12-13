@@ -367,6 +367,26 @@ func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		//Deleting prev url :
+
+		user,err := database.RetrieveUser(db,userID);
+
+		if err!= nil{
+			fmt.Println("Error retrieving user from database", err)
+
+			http.Error(w, fmt.Sprintf("Error retrieving user from database : %v", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		prevImgUrl := user.ProfileImg;
+
+		if err := cloudinary.DeleteImage(cld,ctx,prevImgUrl);err!=nil{
+			fmt.Println("Error Deleting previous profile image", err)
+
+			http.Error(w, fmt.Sprintf("Error Deleting previous profile image : %v", err.Error()), http.StatusInternalServerError)
+			return ;
+		}
+
 		if err := database.UpdateUserProfilePic(db, userID, url); err != nil {
 
 			fmt.Println("Error updating profile image", err)
