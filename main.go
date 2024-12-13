@@ -97,13 +97,16 @@ func main() {
 	// handler := c.Handler(router)
 	// handler = middlewares.CoopMiddleware(handler)
 
-	///
+	///****
 
 	// handler := middlewares.DebugOriginMiddleware(c.Handler(router))
 	// handler = middlewares.CoopMiddleware(handler)
 	// handler = middlewares.DebugMiddleware(handler)
 
-	handler := middlewares.DebugOriginMiddleware(c.Handler(router))
+	//*******
+
+	// handler := middlewares.DebugOriginMiddleware(c.Handler(router))
+	handler := middlewares.DebugOriginMiddleware(router) // No `c.Handler`
 	handler = middlewares.HandleOptionsMiddleware(handler)
 	handler = middlewares.CoopMiddleware(handler)
 	handler = middlewares.DebugMiddleware(handler)
