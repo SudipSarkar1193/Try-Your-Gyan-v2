@@ -27,15 +27,13 @@ func main() {
 		log.Println("Error loading Env file", err)
 	}
 
-	// database.DisplayData(db)
-
 	// Initialize Firebase Auth client
 	handlers.InitializeFirebaseApp()
 
 	// Configure CORS
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173", "https://try-your-gyan.vercel.app"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
@@ -58,9 +56,9 @@ func main() {
 	router.HandleFunc("/api/quiz/quizzes", middlewares.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			handlers.GetUserQuizzesHandler(db)(w, r) // Call the GET handler
+			handlers.GetUserQuizzesHandler(db)(w, r)
 		case http.MethodDelete:
-			handlers.DeleteQuiz(db)(w, r) // Call the DELETE handler
+			handlers.DeleteQuiz(db)(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -69,8 +67,9 @@ func main() {
 	router.HandleFunc("/api/quiz/questions", middlewares.AuthMiddleware(handlers.GetQuizQuestionsHandler(db)))
 	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails(db)))
 
-	// Wrap the router with middlewares: CORS first, then COOP
-	handler := middlewares.CoopMiddleware(c.Handler(router))
+	// Combine middlewares: Handle OPTIONS requests, then CORS, then COOP
+	handler := middlewares.HandleOptionsMiddleware(c.Handler(router))
+	handler = middlewares.CoopMiddleware(handler)
 
 	// Setup HTTP server
 	server := http.Server{
