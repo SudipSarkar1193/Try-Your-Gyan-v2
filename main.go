@@ -23,9 +23,9 @@ func main() {
 	cfg := config.MustLoad()
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 
-	if err := config.LoadEnvFile(".env"); err != nil {
-		log.Println("Error loading Env file", err)
-	}
+	// if err := config.LoadEnvFile(".env"); err != nil {
+	// 	log.Println("Error loading Env file", err)
+	// }
 
 	// Initialize Firebase Auth client
 	handlers.InitializeFirebaseApp()
