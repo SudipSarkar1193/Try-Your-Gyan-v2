@@ -20,6 +20,11 @@ func CoopMiddleware(next http.Handler) http.Handler {
 
 func DebugOriginMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		
+		log.Println()
+		log.Println("Inside DebugOriginMiddleware")
+		log.Println()
+
 		origin := r.Header.Get("Origin")
 		log.Println()
 		if origin == "" {
