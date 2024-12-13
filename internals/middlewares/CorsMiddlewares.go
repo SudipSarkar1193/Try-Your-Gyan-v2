@@ -20,7 +20,7 @@ func CoopMiddleware(next http.Handler) http.Handler {
 
 func DebugOriginMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		
+
 		log.Println()
 		log.Println("Inside DebugOriginMiddleware")
 		log.Println()
@@ -39,14 +39,18 @@ func DebugOriginMiddleware(next http.Handler) http.Handler {
 
 func DebugMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println("DEBUG: DebugMiddleware hit")
 		log.Println()
 		log.Printf("Request Headers: %+v\n", r.Header)
 		log.Println()
 		log.Printf("Request Method: %s\n", r.Method)
 		log.Println()
-		next.ServeHTTP(w, r)
+
 		log.Printf("Response Headers: %+v\n", w.Header())
 		log.Println()
+
+		log.Printf("GETTING OUT NOW FROM DebugMiddleware\n, Path: %s, Method: %s\n", r.URL.Path, r.Method)
+		next.ServeHTTP(w, r)
 	})
 }
 

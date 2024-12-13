@@ -3,6 +3,7 @@ package middlewares
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,6 +22,8 @@ import (
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		log.Printf("DEBUG: AuthMiddleware hit, Path: %s, Method: %s\n", r.URL.Path, r.Method)
+		log.Println()
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
 

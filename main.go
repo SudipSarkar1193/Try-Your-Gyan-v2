@@ -43,6 +43,10 @@ func main() {
 	router := http.NewServeMux()
 
 	// Set up routes
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("DEBUG: Fallback route hit, Path: %s, Method: %s\n", r.URL.Path, r.Method)
+		http.NotFound(w, r)
+	})
 	router.HandleFunc("/api/users/new", handlers.New(db))
 	router.HandleFunc("/api/users/login", handlers.Login(db))
 	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
@@ -52,6 +56,16 @@ func main() {
 
 	router.HandleFunc("/api/users/update-profile-pic", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("DEBUG: Reached /api/users/update-profile-pic, Method: %s\n", r.Method)
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+			w.Header().Set("Access-Control-Allow-Methods", "PUT, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.WriteHeader(http.StatusOK)
+			log.Println("DEBUG: Preflight request handled")
+			return
+		}
+		log.Printf("DEBUG: Actual request handled, Method: %s\n", r.Method)
 		middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)).ServeHTTP(w, r)
 	})
 
