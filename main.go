@@ -78,10 +78,16 @@ func main() {
 	// handler := c.Handler(router)
 	// handler = middlewares.CoopMiddleware(handler)
 
+	///
+
+	// handler := middlewares.DebugOriginMiddleware(c.Handler(router))
+	// handler = middlewares.CoopMiddleware(handler)
+	// handler = middlewares.DebugMiddleware(handler)
+
 	handler := middlewares.DebugOriginMiddleware(c.Handler(router))
+	handler = middlewares.HandleOptionsMiddleware(handler)
 	handler = middlewares.CoopMiddleware(handler)
 	handler = middlewares.DebugMiddleware(handler)
-
 
 	// Setup HTTP server
 	server := http.Server{
