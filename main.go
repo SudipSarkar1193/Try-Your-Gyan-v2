@@ -67,8 +67,8 @@ func main() {
 	router.HandleFunc("/api/quiz/questions", middlewares.AuthMiddleware(handlers.GetQuizQuestionsHandler(db)))
 	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails(db)))
 
-	// Combine middlewares: Handle OPTIONS requests, then CORS, then COOP
-	handler := middlewares.HandleOptionsMiddleware(c.Handler(router))
+	// Combine middlewares: CORS first, then HandleOptionsMiddleware, then COOP
+	handler := c.Handler(middlewares.HandleOptionsMiddleware(router))
 	handler = middlewares.CoopMiddleware(handler)
 
 	// Setup HTTP server
