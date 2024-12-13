@@ -30,6 +30,15 @@ func DebugOriginMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func DebugMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        log.Printf("Request Headers: %+v\n", r.Header)
+        next.ServeHTTP(w, r)
+        log.Printf("Response Headers: %+v\n", w.Header())
+    })
+}
+
+
 func HandleOptionsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
