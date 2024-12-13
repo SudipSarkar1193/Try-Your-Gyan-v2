@@ -48,7 +48,12 @@ func main() {
 	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
 	router.HandleFunc("/api/users/auth/verify", middlewares.VerifyUserMiddleware(handlers.VerifyUser(db)))
 	router.HandleFunc("/api/users/auth/newotp", middlewares.VerifyUserMiddleware(handlers.RequestNewOTP(db)))
-	router.HandleFunc("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
+	// router.HandleFunc("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
+
+	router.HandleFunc("/api/users/update-profile-pic", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("DEBUG: Reached /api/users/update-profile-pic, Method: %s\n", r.Method)
+		middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)).ServeHTTP(w, r)
+	})
 
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
