@@ -23,9 +23,9 @@ func main() {
 	cfg := config.MustLoad()
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 
-	// if err := config.LoadEnvFile(".env"); err != nil {
-	// 	log.Println("Error loading Env file", err)
-	// }
+	if err := config.LoadEnvFile(".env"); err != nil {
+		log.Println("Error loading Env file", err)
+	}
 
 	// database.DisplayData(db)
 
@@ -49,10 +49,12 @@ func main() {
 	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
 	router.HandleFunc("/api/users/auth/verify", middlewares.VerifyUserMiddleware(handlers.VerifyUser(db)))
 	router.HandleFunc("/api/users/auth/newotp", middlewares.VerifyUserMiddleware(handlers.RequestNewOTP(db)))
+	router.HandleFunc("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
+
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
 	router.HandleFunc("/api/quiz/questions/new", middlewares.AuthMiddleware(handlers.InsertQuestions(db)))
-	
+
 	router.HandleFunc("/api/quiz/quizzes", middlewares.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:

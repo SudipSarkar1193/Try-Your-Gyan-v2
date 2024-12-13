@@ -268,10 +268,10 @@ func DeleteOTPbyUserId(db *sql.DB, id int) error {
 
 	return nil
 }
+
 //******************************************************************************************/
 
-
-func DeleteQuizById(db *sql.DB, id int)error{
+func DeleteQuizById(db *sql.DB, id int) error {
 	query := "DELETE FROM quizzes WHERE id = $1"
 	result, err := db.Exec(query, id)
 	if err != nil {
@@ -283,7 +283,7 @@ func DeleteQuizById(db *sql.DB, id int)error{
 		return fmt.Errorf("failed to get affected rows: %w", err)
 	}
 
-	fmt.Println("rowsAffected (DeleteQuizById)",rowsAffected)
+	fmt.Println("rowsAffected (DeleteQuizById)", rowsAffected)
 
 	if rowsAffected == 0 {
 		return fmt.Errorf("no Quiz found for the ID %d", id)
@@ -291,9 +291,6 @@ func DeleteQuizById(db *sql.DB, id int)error{
 
 	return nil
 }
-
-
-
 
 /*--------------------------------------------------------------------------------------------------*/
 
@@ -377,7 +374,81 @@ func RetrieveOTP(db *sql.DB, userID int) (string, error) {
 	}
 	return otp, nil
 }
+
+//********************************************************************/
+
+func UpdateUserProfilePic(db *sql.DB, userId int, url string) error {
+	query := "UPDATE users SET profileImg = $1 WHERE id = $2"
+
+	res, err := db.Exec(query, url, userId)
+	if err != nil {
+		return fmt.Errorf("failed to update profileImg: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+
+	if err != nil {
+		return fmt.Errorf("failed to retrieve affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with id %d ", userId)
+	}
+	return nil
+}
+
+//*******************************************************************/
+
+func updateUserPassword(db *sql.DB, userId int, newPassword string) error {
+	query := "UPDATE users SET password = $1 WHERE id = $2"
+
+	res, err := db.Exec(query, newPassword, userId)
+
+	if err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+
+	if err != nil {
+		return fmt.Errorf("failed to retrieve affected rows: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with id %d ", userId)
+	}
+	return nil
+
+}
+
+//**************
+
+func UpdateUserBio(db *sql.DB, userId int, newBio string) error {
+	// SQL query to update the bio field
+	query := "UPDATE users SET bio = $1 WHERE id = $2"
+
+	// Execute the query
+	result, err := db.Exec(query, newBio, userId)
+	if err != nil {
+		return fmt.Errorf("failed to update bio: %w", err)
+	}
+
+	// Check rows affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve affected rows: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with id %d", userId)
+	}
+
+	return nil
+}
+
+//*******************************************************/
+
 //******************************************************************/
+
 func InsertNewOTP(db *sql.DB, otp string, user_id int64) (int64, error) {
 	query := "INSERT INTO otp_table (user_id,otp) VALUES ($1, $2) RETURNING id"
 

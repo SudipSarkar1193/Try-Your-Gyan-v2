@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -17,6 +18,7 @@ import (
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/password"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/response"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
+	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/utils/cloudinary"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/utils/email"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/utils/tokens"
 )
@@ -126,7 +128,6 @@ func New(db *sql.DB) http.HandlerFunc {
 		database.InsertNewOTP(db, otp, user_id)
 
 		email.SendOTPEmail(user.Email, otp)
-		
 
 		emptyResponse := response.CreateResponse(tokenResponse, http.StatusCreated, "User created Successfully", "<DeveloperMessage>", "<UserMessage>", false, "Err")
 
@@ -259,7 +260,7 @@ func VerifyUser(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			database.DeleteOTPbyUserId(db,userID)
+			database.DeleteOTPbyUserId(db, userID)
 
 			response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Verified successfully", "", "", false, ""))
 			return
@@ -291,15 +292,15 @@ func RequestNewOTP(db *sql.DB) http.HandlerFunc {
 
 		otp := GenerateRandomString()
 
-		err=database.UpdateOtpForUser(db, userID, otp)
-		if err !=nil {
-           fmt.Println(err);
-		   _,err = database.InsertNewOTP(db,otp,int64(userID))
+		err = database.UpdateOtpForUser(db, userID, otp)
+		if err != nil {
+			fmt.Println(err)
+			_, err = database.InsertNewOTP(db, otp, int64(userID))
 
-		   if err!=nil{
-			http.Error(w, fmt.Sprintf("Database Error : %v", err.Error()), http.StatusBadRequest)
-			return
-		   } 
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Database Error : %v", err.Error()), http.StatusBadRequest)
+				return
+			}
 		}
 
 		user, err := database.RetrieveUser(db, userID)
@@ -317,5 +318,63 @@ func RequestNewOTP(db *sql.DB) http.HandlerFunc {
 
 		response.WriteResponse(w, response.CreateResponse(otp, http.StatusOK, "New OTP has been sent to the registered email"))
 
+	}
+}
+
+func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodPut {
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+			return
+		}
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		var reqData struct {
+			Url string `json:"profileImgUrl" validate:"required"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
+
+		validate := validator.New()
+		if err := validate.Struct(reqData); err != nil {
+			response.ValidateResponse(w, err)
+			return
+		}
+
+		cld, ctx, err := cloudinary.Credentials()
+		if err != nil {
+			fmt.Println("Error getting credentials", err)
+
+			http.Error(w, fmt.Sprintf("Error getting credentials: %v", err.Error()), http.StatusInternalServerError)
+		}
+
+		url, err := cloudinary.UploadImage(cld, ctx, reqData.Url)
+		if err != nil {
+			fmt.Println("Error updating profile image to cloudinary", err)
+
+			http.Error(w, fmt.Sprintf("Error updating profile image to cloudinary : %v", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		if err := database.UpdateUserProfilePic(db, userID, url); err != nil {
+
+			fmt.Println("Error updating profile image", err)
+
+			http.Error(w, fmt.Sprintf("Error updating profile image : %v", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Profile picture updated"))
 	}
 }

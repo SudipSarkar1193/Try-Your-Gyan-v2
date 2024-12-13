@@ -193,7 +193,7 @@ func GetQuizQuestionsHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func DeleteQuiz(db *sql.DB) http.HandlerFunc{
+func DeleteQuiz(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusMethodNotAllowed)
@@ -209,8 +209,8 @@ func DeleteQuiz(db *sql.DB) http.HandlerFunc{
 			return
 		}
 
-		err=database.DeleteQuizById(db,quizID);
-		if err!=nil {
+		err = database.DeleteQuizById(db, quizID)
+		if err != nil {
 			http.Error(w, fmt.Sprintf("Error deleting Quiz : %v", err.Error()), http.StatusInternalServerError)
 			return
 		}
