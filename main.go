@@ -68,8 +68,11 @@ func main() {
 	router.HandleFunc("/api/quiz/questions", middlewares.AuthMiddleware(handlers.GetQuizQuestionsHandler(db)))
 	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails(db)))
 
-	// Combine middlewares: CORS first, then COOP
-	handler := c.Handler(router)
+	// // Combine middlewares: CORS first, then COOP
+	// handler := c.Handler(router)
+	// handler = middlewares.CoopMiddleware(handler)
+
+	handler := DebugOriginMiddleware(c.Handler(router))
 	handler = middlewares.CoopMiddleware(handler)
 
 	// Setup HTTP server
@@ -103,4 +106,3 @@ func main() {
 		slog.Info("Server shut down successfully")
 	}
 }
-

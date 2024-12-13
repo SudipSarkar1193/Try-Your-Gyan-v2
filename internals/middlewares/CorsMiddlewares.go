@@ -1,9 +1,9 @@
 package middlewares
 
 import (
+	"log"
 	"net/http"
 )
-
 
 // Middleware to set COOP and COEP headers
 func CoopMiddleware(next http.Handler) http.Handler {
@@ -14,6 +14,18 @@ func CoopMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Cross-Origin-Embedder-Policy", "unsafe-none")
 
 		// Call the next handler
+		next.ServeHTTP(w, r)
+	})
+}
+
+func DebugOriginMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			log.Println("Debug: Missing Origin header")
+		} else {
+			log.Printf("Debug: Origin header present: %s\n", origin)
+		}
 		next.ServeHTTP(w, r)
 	})
 }
