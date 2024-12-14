@@ -86,6 +86,7 @@ func New(db *sql.DB) http.HandlerFunc {
 
 		if err := validate.Struct(&user); err != nil {
 			if _, ok := err.(*validator.InvalidValidationError); ok {
+				http.Error(w, "validate Struct error", http.StatusBadRequest)
 				fmt.Println(err)
 				return
 			}
@@ -127,7 +128,10 @@ func New(db *sql.DB) http.HandlerFunc {
 
 		database.InsertNewOTP(db, otp, user_id)
 
-		email.SendOTPEmail(user.Email, otp)
+		if err := email.SendOTPEmail(user.Email, otp); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to send OTP %v", err), http.StatusInternalServerError)
+			return
+		}
 
 		emptyResponse := response.CreateResponse(tokenResponse, http.StatusCreated, "User created Successfully", "<DeveloperMessage>", "<UserMessage>", false, "Err")
 
@@ -229,7 +233,7 @@ func VerifyUser(db *sql.DB) http.HandlerFunc {
 
 		}
 
-		//Retrive the token from the database:
+		//Retrive the otp from the database:
 
 		otp, err := database.RetrieveOTP(db, userID)
 
@@ -257,6 +261,68 @@ func VerifyUser(db *sql.DB) http.HandlerFunc {
 
 			if err := database.UpdateUserById(db, int64(userID), true); err != nil {
 				http.Error(w, fmt.Sprintf("Error updating user from Database, %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			database.DeleteOTPbyUserId(db, userID)
+
+			response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Verified successfully", "", "", false, ""))
+			return
+
+		} else {
+			http.Error(w, "Wrong OTP", http.StatusBadRequest)
+			return
+		}
+
+	}
+}
+
+func VerifyEmail(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodPost {
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+			return
+		}
+
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		//Retrive the otp from the database:
+
+		otp, err := database.RetrieveOTP(db, userID)
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error retrieving otp from Database, %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		var reqData struct {
+			OTP      string `json:"otp" validate:"required"`
+			NewEmail string `json:"newEmail" validate:"required"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
+
+		validate := validator.New()
+		if err := validate.Struct(reqData); err != nil {
+			response.ValidateResponse(w, err)
+			return
+		}
+
+		if otp == reqData.OTP {
+
+			if err := database.UpdateUserEmail(db, userID, reqData.NewEmail); err != nil {
+				http.Error(w, fmt.Sprintf("Error updating email , %v", err), http.StatusInternalServerError)
 				return
 			}
 
@@ -312,6 +378,67 @@ func RequestNewOTP(db *sql.DB) http.HandlerFunc {
 		}
 
 		if err := email.SendOTPEmail(user.Email, otp); err != nil {
+			http.Error(w, fmt.Sprintf("Error sending email : %v", err.Error()), http.StatusBadRequest)
+			return
+		}
+
+		response.WriteResponse(w, response.CreateResponse(otp, http.StatusOK, "New OTP has been sent to the registered email"))
+
+	}
+}
+
+func RequestNewOTPToVerifyEmail(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+			return
+		}
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		var reqData struct {
+			NewEmail string `json:"newEmail" validate:"required"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
+
+		validate := validator.New()
+		if err := validate.Struct(reqData); err != nil {
+			response.ValidateResponse(w, err)
+			return
+		}
+		//Generate OTP and update :
+
+		otp := GenerateRandomString()
+
+		err = database.UpdateOtpForUser(db, userID, otp)
+		if err != nil {
+			fmt.Println(err)
+			_, err = database.InsertNewOTP(db, otp, int64(userID))
+
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Database Error : %v", err.Error()), http.StatusBadRequest)
+				return
+			}
+		}
+
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		if err := email.SendOTPEmail(reqData.NewEmail, otp); err != nil {
 			http.Error(w, fmt.Sprintf("Error sending email : %v", err.Error()), http.StatusBadRequest)
 			return
 		}
@@ -396,5 +523,102 @@ func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
 		}
 
 		response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Profile picture updated"))
+	}
+}
+
+func UpdateUserDetails(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodPut {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+			return
+		}
+
+		userIDStr := r.Header.Get("userID")
+		userId, err := strconv.Atoi(userIDStr)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		var request types.UserUpdateRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+			return
+		}
+
+		if request.IsEmailChanged {
+			u, _ := database.RetrieveUser(db, request.Email)
+			if u != nil {
+				http.Error(w, fmt.Sprintf("%v has already an account", u.Email), http.StatusInternalServerError)
+				return
+			}
+			otp := GenerateRandomString()
+
+			if _, err := database.InsertNewOTP(db, otp, int64(userId)); err != nil {
+				http.Error(w, "Failed to insert OTP", http.StatusInternalServerError)
+				return
+			}
+
+			if err := email.SendOTPEmail(request.Email, otp); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to send OTP %v", err), http.StatusInternalServerError)
+				return
+			}
+
+		}
+
+		if request.IsPasswordChanged {
+
+			user, err := database.RetrieveUser(db, userId)
+			if err != nil {
+				http.Error(w, "Failed to retrieve user", http.StatusInternalServerError)
+				return
+			}
+
+			correct, err := password.CheckPassword(request.CurrentPassword, user.Password)
+			if err != nil {
+				http.Error(w, "Failed to Check the Password", http.StatusInternalServerError)
+				return
+			}
+
+			if correct {
+				hashPassword, err := password.HashPassword(request.NewPassword)
+				if err != nil {
+					http.Error(w, "Failed to hash the password", http.StatusInternalServerError)
+					return
+				}
+
+				if err := database.UpdatePassword(db, userId, hashPassword); err != nil {
+					http.Error(w, "Failed to update password", http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+
+		if request.IsBioChanged {
+			if err := database.UpdateBio(db, userId, request.Bio); err != nil {
+				http.Error(w, "Failed to update bio", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if request.IsUsernameChanged {
+			fmt.Println("DEBUG: request.IsUsernameChanged")
+			u, _ := database.RetrieveUser(db, request.Username)
+			if u != nil {
+				fmt.Println("DEBUG:  is already taken . Try another ", u.Username)
+
+				http.Error(w, fmt.Sprintf("%v is already taken . Try another ", u.Username), http.StatusInternalServerError)
+				return
+			}
+			if err := database.UpdateUsername(db, userId, request.Username); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to update username : %v", err), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Profile details updated"))
 	}
 }

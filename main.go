@@ -40,7 +40,6 @@ func main() {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "Access-Control-Allow-Origin"},
 		AllowCredentials: true,
-		Debug:            true,
 	})
 
 	// Initialize router
@@ -52,7 +51,10 @@ func main() {
 	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
 	router.HandleFunc("/api/users/auth/verify", middlewares.VerifyUserMiddleware(handlers.VerifyUser(db)))
 	router.HandleFunc("/api/users/auth/newotp", middlewares.VerifyUserMiddleware(handlers.RequestNewOTP(db)))
+	router.HandleFunc("/api/users/newotp", middlewares.AuthMiddleware(handlers.RequestNewOTPToVerifyEmail(db)))
 	router.HandleFunc("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
+	router.HandleFunc("/api/users/verify-email", middlewares.AuthMiddleware(handlers.VerifyEmail(db)))
+	router.HandleFunc("/api/users/update-profile", middlewares.AuthMiddleware(handlers.UpdateUserDetails(db)))
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
 	router.HandleFunc("/api/quiz/questions/new", middlewares.AuthMiddleware(handlers.InsertQuestions(db)))

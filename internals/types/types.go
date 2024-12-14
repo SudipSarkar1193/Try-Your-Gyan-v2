@@ -45,3 +45,15 @@ type GoogleTokenInfo struct {
 	Name          string `json:"name"`
 	Picture       string `json:"picture"`
 }
+
+type UserUpdateRequest struct {
+	Bio               string `json:"bio"`
+	CurrentPassword   string `json:"currentPassword"`
+	Email             string `json:"email"`
+	IsPasswordChanged bool   `json:"isPasswordChanged"`
+	IsUsernameChanged bool   `json:"isUsernameChanged"`
+	IsBioChanged      bool   `json:"isbioChanged"`
+	IsEmailChanged    bool   `json:"isemailChanged"`
+	NewPassword       string `json:"newPassword"`
+	Username          string `json:"username"`
+}

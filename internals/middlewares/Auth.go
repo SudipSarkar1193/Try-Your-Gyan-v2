@@ -22,8 +22,8 @@ import (
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		log.Printf("DEBUG: AuthMiddleware hit, Path: %s, Method: %s\n", r.URL.Path, r.Method)
-		log.Println()
+		// log.Printf("DEBUG: AuthMiddleware hit, Path: %s, Method: %s\n", r.URL.Path, r.Method)
+		// log.Println()
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
 
@@ -78,14 +78,14 @@ func GetUserDetails(db *sql.DB) http.HandlerFunc {
 			http.Error(w, fmt.Sprintf("Couldn't retrieve the user : %v", err), http.StatusInternalServerError)
 		}
 		if user.Password != "" {
-			log.Println()
-			log.Println("user.Password != '';;  user.Password :", user.Password)
-			log.Println()
+			// log.Println()
+			// log.Println("user.Password != '';;  user.Password :", user.Password)
+			// log.Println()
 			user.Password = true
 		} else {
-			log.Println()
-			log.Println("user.Password == '';;  user.Password :", user.Password)
-			log.Println()
+			// log.Println()
+			// log.Println("user.Password == '';;  user.Password :", user.Password)
+			// log.Println()
 			user.Password = false
 		}
 

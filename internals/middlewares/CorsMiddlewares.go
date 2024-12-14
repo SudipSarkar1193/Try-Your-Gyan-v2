@@ -11,9 +11,9 @@ func CoopMiddleware(next http.Handler) http.Handler {
 
 		//DEBUG :
 
-		log.Println()
-		log.Println("DEBUG : Inside CoopMiddleware")
-		log.Println()
+		// log.Println()
+		// log.Println("DEBUG : Inside CoopMiddleware")
+		// log.Println()
 
 		// Set COOP header to allow popups for Firebase Auth
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
@@ -70,11 +70,11 @@ func HandleOptionsMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Access-Control-Allow-Origin")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			log.Println("Handled 'r.Method == http.MethodOptions' block ")
+			// log.Println("Handled 'r.Method == http.MethodOptions' block ")
 			w.WriteHeader(http.StatusOK)
 
 		}
-		log.Println("Reached out of if 'r.Method == http.MethodOptions' block")
+		// log.Println("Reached out of if 'r.Method == http.MethodOptions' block")
 
 		next.ServeHTTP(w, r)
 	})

@@ -397,31 +397,101 @@ func UpdateUserProfilePic(db *sql.DB, userId int, url string) error {
 	return nil
 }
 
-//*******************************************************************/
+//************************************************************************
 
-func updateUserPassword(db *sql.DB, userId int, newPassword string) error {
-	query := "UPDATE users SET password = $1 WHERE id = $2"
+func UpdateBio(db *sql.DB, userID int, newBio string) error {
+	// SQL query to update the bio field
+	query := "UPDATE users SET bio = $1 WHERE id = $2"
 
-	res, err := db.Exec(query, newPassword, userId)
-
+	// Execute the query with placeholders for dynamic values
+	result, err := db.Exec(query, newBio, userID)
 	if err != nil {
-		return fmt.Errorf("failed to update password: %w", err)
+		return err
 	}
 
-	rowsAffected, err := res.RowsAffected()
+	// Check if any rows were updated
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with the given ID")
+	}
 
+	return nil
+}
+
+///**********************************************************************
+
+// UpdateUsername updates the username of a user in the PostgreSQL database
+func UpdateUsername(db *sql.DB, userID int, newUsername string) error {
+	// SQL query to update the username field
+	query := "UPDATE users SET username = $1 WHERE id = $2"
+
+	// Execute the query with placeholders for dynamic values
+	result, err := db.Exec(query, newUsername, userID)
+	if err != nil {
+		return err
+	}
+
+	// Check if any rows were updated
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with the given ID")
+	}
+
+	return nil
+}
+
+//*******************************************************************/
+
+func UpdatePassword(db *sql.DB, userID int, hashedPassword string) error {
+	// SQL query to update the password field
+	query := "UPDATE users SET password = $1 WHERE id = $2"
+
+	// Execute the query with placeholders for dynamic values
+	result, err := db.Exec(query, hashedPassword, userID)
+	if err != nil {
+		return err
+	}
+
+	// Check if any rows were updated
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with the given ID")
+	}
+
+	return nil
+}
+
+// ********************************************
+func UpdateUserEmail(db *sql.DB, userId int, newEmail string) error {
+	query := "UPDATE users SET email = $1 WHERE id = $2"
+
+	// Execute the query
+	result, err := db.Exec(query, newEmail, userId)
+	if err != nil {
+		return fmt.Errorf("failed to update email: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve affected rows: %w", err)
 	}
-
 	if rowsAffected == 0 {
-		return fmt.Errorf("no user found with id %d ", userId)
+		return fmt.Errorf("no user found with id %d", userId)
 	}
-	return nil
 
+	return nil
 }
 
-//**************
+//*******************************************************
 
 func UpdateUserBio(db *sql.DB, userId int, newBio string) error {
 	// SQL query to update the bio field
