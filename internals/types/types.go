@@ -9,6 +9,7 @@ type User struct {
 	Password   string `json:"password" validate:"required"`
 	IsVarified bool   `json:"isVarified"`
 	ProfileImg string `json:"profileImg"`
+	Bio        string `json:"bio"`
 }
 
 type QuizRequest struct {

@@ -80,7 +80,7 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 			user = &types.User{
 				Username:   uniqueUsername,
 				Email:      requestData.Email,
-				Password:   requestData.FirebaseId,
+				Password:   "",
 				IsVarified: true,
 				ProfileImg: requestData.ProfileImg,
 			}

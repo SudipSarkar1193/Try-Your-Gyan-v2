@@ -326,11 +326,11 @@ func RetrieveUser(db *sql.DB, identifier any) (*types.User, error) {
 
 	switch v := identifier.(type) {
 	case string:
-		query = `SELECT id, username, email, password,isVarified,profileImg FROM users WHERE email = $1 OR username = $2 LIMIT 1`
-		err = db.QueryRow(query, v, v).Scan(&user.Id, &user.Username, &user.Email, &user.Password, &user.IsVarified, &user.ProfileImg)
+		query = `SELECT id, username, email, password,isVarified,profileImg,bio FROM users WHERE email = $1 OR username = $2 LIMIT 1`
+		err = db.QueryRow(query, v, v).Scan(&user.Id, &user.Username, &user.Email, &user.Password, &user.IsVarified, &user.ProfileImg, &user.Bio)
 	case int, int64:
-		query = `SELECT id, username, email, password,isVarified,profileImg FROM users WHERE id = $1 LIMIT 1`
-		err = db.QueryRow(query, v).Scan(&user.Id, &user.Username, &user.Email, &user.Password, &user.IsVarified, &user.ProfileImg)
+		query = `SELECT id, username, email, password,isVarified,profileImg,bio FROM users WHERE id = $1 LIMIT 1`
+		err = db.QueryRow(query, v).Scan(&user.Id, &user.Username, &user.Email, &user.Password, &user.IsVarified, &user.ProfileImg, &user.Bio)
 	default:
 		return nil, fmt.Errorf("unsupported identifier type: %T", identifier)
 	}
@@ -616,21 +616,23 @@ func UsernameExists(db *sql.DB, username string) (bool, error) {
 
 // AddColumnWithDefault adds a new column to the specified table and sets a default value.
 func AddColumnWithDefault(db *sql.DB, tableName, columnName, columnType, defaultValue string) error {
-	// Step 1: Add the new column to the table with a NOT NULL constraint
-	addColumnQuery := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s NOT NULL;", tableName, columnName, columnType)
+	// Step 1: Add the new column to the table without a default value initially
+	addColumnQuery := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s;", tableName, columnName, columnType)
 	_, err := db.Exec(addColumnQuery)
 	if err != nil {
 		return fmt.Errorf("failed to add column: %w", err)
 	}
 	log.Printf("Column %s added to table %s", columnName, tableName)
 
-	// Step 2: Set default value for existing rows where the column is NULL
-	updateDefaultQuery := fmt.Sprintf("UPDATE %s SET %s = $1 WHERE %s IS NULL;", tableName, columnName, columnName)
-	_, err = db.Exec(updateDefaultQuery, defaultValue)
-	if err != nil {
-		return fmt.Errorf("failed to set default value: %w", err)
+	// Step 2: If a default value is provided, update existing rows with it
+	if defaultValue != "" {
+		updateDefaultQuery := fmt.Sprintf("UPDATE %s SET %s = $1 WHERE %s IS NULL;", tableName, columnName, columnName)
+		_, err = db.Exec(updateDefaultQuery, defaultValue)
+		if err != nil {
+			return fmt.Errorf("failed to set default value: %w", err)
+		}
+		log.Printf("Default value set for column %s in table %s", columnName, tableName)
 	}
-	log.Printf("Default value set for column %s in table %s", columnName, tableName)
 
 	return nil
 }
