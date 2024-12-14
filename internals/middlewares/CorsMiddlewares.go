@@ -66,11 +66,11 @@ func HandleOptionsMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			log.Println("Handled r.Method == http.MethodOptions ")
+			log.Println("Handled 'r.Method == http.MethodOptions' block ")
 			w.WriteHeader(http.StatusOK)
-			return
+
 		}
-		log.Println()
+		log.Println("Reached out of if 'r.Method == http.MethodOptions' block")
 
 		next.ServeHTTP(w, r)
 	})
