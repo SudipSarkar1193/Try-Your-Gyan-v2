@@ -74,6 +74,12 @@ func GetUserDetails(db *sql.DB) http.HandlerFunc {
 
 		user, err := database.RetrieveUser(db, userID)
 
+		if user.Password !=nil {
+			user.Password = true;
+		}else{
+			user.Password = false;
+		}
+
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Couldn't retrieve the user : %v", err), http.StatusInternalServerError)
 		}

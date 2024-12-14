@@ -6,7 +6,7 @@ type User struct {
 	Id         int64  `json:"id"`
 	Username   string `json:"username" validate:"required"`
 	Email      string `json:"email" validate:"required,email"`
-	Password   string `json:"password" validate:"required"`
+	Password   interface{} `json:"password" validate:"required"`
 	IsVarified bool   `json:"isVarified"`
 	ProfileImg string `json:"profileImg"`
 	Bio        string `json:"bio"`
