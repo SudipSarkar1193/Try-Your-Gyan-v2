@@ -8,6 +8,13 @@ import (
 // Middleware to set COOP and COEP headers
 func CoopMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		//DEBUG :
+
+		log.Println()
+		log.Println("DEBUG : Inside CoopMiddleware")
+		log.Println()
+
 		// Set COOP header to allow popups for Firebase Auth
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
 		// Set COEP to be less restrictive
@@ -64,7 +71,7 @@ func HandleOptionsMiddleware(next http.Handler) http.Handler {
 			// Add CORS headers for preflight requests
 			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Access-Control-Allow-Origin")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			log.Println("Handled 'r.Method == http.MethodOptions' block ")
 			w.WriteHeader(http.StatusOK)
