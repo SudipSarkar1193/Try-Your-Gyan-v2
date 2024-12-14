@@ -3,13 +3,13 @@ package types
 import "time"
 
 type User struct {
-	Id         int64  `json:"id"`
-	Username   string `json:"username" validate:"required"`
-	Email      string `json:"email" validate:"required,email"`
+	Id         int64       `json:"id"`
+	Username   string      `json:"username" validate:"required"`
+	Email      string      `json:"email" validate:"required,email"`
 	Password   interface{} `json:"password" validate:"required"`
-	IsVarified bool   `json:"isVarified"`
-	ProfileImg string `json:"profileImg"`
-	Bio        string `json:"bio"`
+	IsVarified bool        `json:"isVarified"`
+	ProfileImg string      `json:"profileImg"`
+	Bio        string      `json:"bio"`
 }
 
 type QuizRequest struct {

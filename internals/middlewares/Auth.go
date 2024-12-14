@@ -74,10 +74,10 @@ func GetUserDetails(db *sql.DB) http.HandlerFunc {
 
 		user, err := database.RetrieveUser(db, userID)
 
-		if user.Password !=nil {
-			user.Password = true;
-		}else{
-			user.Password = false;
+		if user.Password != nil {
+			user.Password = true
+		} else {
+			user.Password = false
 		}
 
 		if err != nil {
