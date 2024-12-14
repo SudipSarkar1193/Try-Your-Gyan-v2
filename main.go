@@ -67,7 +67,7 @@ func main() {
 
 	// Wrap with middlewares
 	handler := c.Handler(router)
-	handler = middlewares.HandleOptionsMiddleware(handler)
+	//handler = middlewares.HandleOptionsMiddleware(handler)
 	handler = middlewares.CoopMiddleware(handler)
 
 	// Setup HTTP server
