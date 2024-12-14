@@ -23,15 +23,14 @@ func HashPassword(password interface{}) (string, error) {
 	return string(hashedPassword), nil
 }
 
-
 func CheckPassword(password string, hash interface{}) (bool, error) {
-    // Type assertion to ensure `hash` is of type `string`
-    strHash, ok := hash.(string)
-    if !ok {
-        return false, fmt.Errorf("invalid type for hash: expected string")
-    }
+	// Type assertion to ensure `hash` is of type `string`
+	strHash, ok := hash.(string)
+	if !ok {
+		return false, fmt.Errorf("invalid type for hash: expected string")
+	}
 
-    // Compare the hash and password
-    err := bcrypt.CompareHashAndPassword([]byte(strHash), []byte(password))
-    return err == nil, err
+	// Compare the hash and password
+	err := bcrypt.CompareHashAndPassword([]byte(strHash), []byte(password))
+	return err == nil, err
 }

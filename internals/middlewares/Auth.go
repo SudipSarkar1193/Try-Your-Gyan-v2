@@ -73,15 +73,20 @@ func GetUserDetails(db *sql.DB) http.HandlerFunc {
 		}
 
 		user, err := database.RetrieveUser(db, userID)
-
-		if user.Password != nil {
+		if err != nil {
+			log.Printf("Couldn't retrieve the user : %v", err)
+			http.Error(w, fmt.Sprintf("Couldn't retrieve the user : %v", err), http.StatusInternalServerError)
+		}
+		if user.Password != "" {
+			log.Println()
+			log.Println("user.Password != '';;  user.Password :", user.Password)
+			log.Println()
 			user.Password = true
 		} else {
+			log.Println()
+			log.Println("user.Password == '';;  user.Password :", user.Password)
+			log.Println()
 			user.Password = false
-		}
-
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Couldn't retrieve the user : %v", err), http.StatusInternalServerError)
 		}
 
 		resp := response.CreateResponse(user, 200, "User-details retrieved succesfully")

@@ -64,9 +64,6 @@ func DebugMiddleware(next http.Handler) http.Handler {
 func HandleOptionsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		log.Println()
-		log.Println("Inside HandleOptionsMiddleware\n Data :=>", r.Header.Get("Origin"))
-
 		if r.Method == http.MethodOptions {
 			// Add CORS headers for preflight requests
 			w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
