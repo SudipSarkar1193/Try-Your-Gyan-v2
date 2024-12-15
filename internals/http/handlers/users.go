@@ -382,7 +382,7 @@ func RequestNewOTP(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		response.WriteResponse(w, response.CreateResponse(otp, http.StatusOK, "New OTP has been sent to the registered email"))
+		response.WriteResponse(w, response.CreateResponse(otp, http.StatusOK, "New OTP has been sent to the registered email address"))
 
 	}
 }
@@ -431,19 +431,12 @@ func RequestNewOTPToVerifyEmail(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		if err != nil {
-
-			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
-			return
-
-		}
-
 		if err := email.SendOTPEmail(reqData.NewEmail, otp); err != nil {
 			http.Error(w, fmt.Sprintf("Error sending email : %v", err.Error()), http.StatusBadRequest)
 			return
 		}
 
-		response.WriteResponse(w, response.CreateResponse(otp, http.StatusOK, "New OTP has been sent to the registered email"))
+		response.WriteResponse(w, response.CreateResponse(otp, http.StatusOK, "New OTP has been sent to the provided email address"))
 
 	}
 }
@@ -605,11 +598,9 @@ func UpdateUserDetails(db *sql.DB) http.HandlerFunc {
 		}
 
 		if request.IsUsernameChanged {
-			fmt.Println("DEBUG: request.IsUsernameChanged")
+
 			u, _ := database.RetrieveUser(db, request.Username)
 			if u != nil {
-				fmt.Println("DEBUG:  is already taken . Try another ", u.Username)
-
 				http.Error(w, fmt.Sprintf("%v is already taken . Try another ", u.Username), http.StatusInternalServerError)
 				return
 			}
