@@ -632,6 +632,26 @@ func FetchQuizzesByUser(db *sql.DB, userID int) ([]types.Quiz, error) {
 	return quizzes, nil
 }
 
+// -------------------------------------------
+func FetchQuizzesByQuizId(db *sql.DB, quizId int) ([]types.Quiz, error) {
+	query := `SELECT quiz_name,level,created_at FROM quizzes WHERE id = $1`
+	rows, err := db.Query(query, quizId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var quizzes []types.Quiz
+	for rows.Next() {
+		var quiz types.Quiz
+		if err := rows.Scan(&quiz.QuizName, &quiz.Level, &quiz.CreatedAt); err != nil {
+			return nil, err
+		}
+		quizzes = append(quizzes, quiz)
+	}
+	return quizzes, nil
+}
+
 // -------------------- ---------------------------------
 
 // FetchQuestionsByQuiz retrieves all questions for a specific quiz

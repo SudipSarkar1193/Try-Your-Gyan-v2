@@ -187,7 +187,17 @@ func GetQuizQuestionsHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		res := response.CreateResponse(questions, http.StatusOK, "Questions retrived successfully")
+		quiz,err := database.FetchQuizzesByQuizId(db,quizID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error fetching quiz : %v", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		data := map[string]interface{}{
+			"questions": questions,
+			"quiz":      quiz,
+		}
+		res := response.CreateResponse(data, http.StatusOK, "Questions retrived successfully")
 
 		response.WriteResponse(w, res)
 	}
