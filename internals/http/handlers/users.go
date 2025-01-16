@@ -322,17 +322,18 @@ func VerifyEmailToUpdate(db *sql.DB, client *auth.Client) http.HandlerFunc {
 		}
 
 		if otp == reqData.OTP {
-
-			if err := database.UpdateUserEmail(db, userID, reqData.NewEmail); err != nil {
-				http.Error(w, fmt.Sprintf("Error updating email , %v", err), http.StatusInternalServerError)
-				return
-			}
-
 			user, err := database.RetrieveUser(db, userID)
 			if err != nil {
 				http.Error(w, fmt.Sprintf("Error retrieving the user : %v", err), http.StatusInternalServerError)
 				return
 			}
+			
+			if err := database.UpdateUserEmail(db, userID, reqData.NewEmail); err != nil {
+				http.Error(w, fmt.Sprintf("Error updating email , %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			
 
 			if err := database.DeleteOTPbyUserId(db, userID); err != nil {
 				http.Error(w, fmt.Sprintf("Error deleting the otp : %v", err), http.StatusInternalServerError)
