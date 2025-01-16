@@ -12,9 +12,11 @@ import (
 	"strconv"
 	"time"
 
+	"firebase.google.com/go/v4/auth"
 	"github.com/go-playground/validator/v10"
 
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/database"
+
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/password"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/response"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
@@ -277,7 +279,7 @@ func VerifyUser(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func VerifyEmail(db *sql.DB) http.HandlerFunc {
+func VerifyEmailToUpdate(db *sql.DB, client *auth.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method != http.MethodPost {
@@ -326,7 +328,21 @@ func VerifyEmail(db *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			database.DeleteOTPbyUserId(db, userID)
+			user, err := database.RetrieveUser(db, userID)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Error retrieving the user : %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			if err := database.DeleteOTPbyUserId(db, userID); err != nil {
+				http.Error(w, fmt.Sprintf("Error deleting the otp : %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			if err := DeleteUserByEmailInFireBase(client, user.Email); err != nil {
+				http.Error(w, fmt.Sprintf("Error deleting user from Firebase : %v", err), http.StatusInternalServerError)
+				return
+			}
 
 			response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Verified successfully", "", "", false, ""))
 			return
@@ -611,5 +627,58 @@ func UpdateUserDetails(db *sql.DB) http.HandlerFunc {
 		}
 
 		response.WriteResponse(w, response.CreateResponse(nil, http.StatusOK, "Profile details updated"))
+	}
+}
+
+func resetPassword(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodPut {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+			return
+		}
+
+		userIDStr := r.Header.Get("userID")
+		userId, err := strconv.Atoi(userIDStr)
+		if err != nil {
+
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		//Data from client
+
+		var request types.UserUpdateRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+			return
+		}
+
+		//Change the pass
+		user, err := database.RetrieveUser(db, userId)
+		if err != nil {
+			http.Error(w, "Failed to retrieve user", http.StatusInternalServerError)
+			return
+		}
+
+		correct, err := password.CheckPassword(request.CurrentPassword, user.Password)
+		if err != nil {
+			http.Error(w, "Failed to Check the Password", http.StatusInternalServerError)
+			return
+		}
+
+		if correct {
+			hashPassword, err := password.HashPassword(request.NewPassword)
+			if err != nil {
+				http.Error(w, "Failed to hash the password", http.StatusInternalServerError)
+				return
+			}
+
+			if err := database.UpdatePassword(db, userId, hashPassword); err != nil {
+				http.Error(w, "Failed to update password", http.StatusInternalServerError)
+				return
+			}
+		}
 	}
 }

@@ -32,7 +32,7 @@ func main() {
 	// }
 
 	// Initialize Firebase Auth client
-	handlers.InitializeFirebaseApp()
+	client := handlers.InitializeFirebaseApp()
 
 	// Configure CORS
 	c := cors.New(cors.Options{
@@ -53,7 +53,7 @@ func main() {
 	router.HandleFunc("/api/users/auth/newotp", middlewares.VerifyUserMiddleware(handlers.RequestNewOTP(db)))
 	router.HandleFunc("/api/users/newotp", middlewares.AuthMiddleware(handlers.RequestNewOTPToVerifyEmail(db)))
 	router.HandleFunc("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
-	router.HandleFunc("/api/users/verify-email", middlewares.AuthMiddleware(handlers.VerifyEmail(db)))
+	router.HandleFunc("/api/users/verify-email", middlewares.AuthMiddleware(handlers.VerifyEmailToUpdate(db, client)))
 	router.HandleFunc("/api/users/update-profile", middlewares.AuthMiddleware(handlers.UpdateUserDetails(db)))
 	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))

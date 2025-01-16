@@ -187,7 +187,7 @@ func GetQuizQuestionsHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		quiz,err := database.FetchQuizzesByQuizId(db,quizID)
+		quiz, err := database.FetchQuizzesByQuizId(db, quizID)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error fetching quiz : %v", err.Error()), http.StatusInternalServerError)
 			return

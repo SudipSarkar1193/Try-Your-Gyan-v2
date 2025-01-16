@@ -18,7 +18,7 @@ import (
 var FirebaseAuthClient *auth.Client
 
 // Initialize Firebase Admin SDK and Auth Client
-func InitializeFirebaseApp() {
+func InitializeFirebaseApp() *auth.Client {
 	encodedCreds := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
 	decodedCreds, err := base64.StdEncoding.DecodeString(encodedCreds)
 	if err != nil {
@@ -38,6 +38,8 @@ func InitializeFirebaseApp() {
 	}
 
 	log.Println("Firebase Auth initialized successfully", FirebaseAuthClient)
+
+	return FirebaseAuthClient
 }
 
 // Verify Firebase ID Token
@@ -53,4 +55,23 @@ func VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
 	}
 
 	return token, nil
+}
+
+func DeleteUserByEmailInFireBase(client *auth.Client, email string) error {
+	ctx := context.Background()
+
+	// Get user by email
+	userRecord, err := client.GetUserByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	// Delete the user by UID
+	err = client.DeleteUser(ctx, userRecord.UID)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Successfully deleted user with email: %s", email)
+	return nil
 }

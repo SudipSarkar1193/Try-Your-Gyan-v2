@@ -634,28 +634,26 @@ func FetchQuizzesByUser(db *sql.DB, userID int) ([]types.Quiz, error) {
 
 // -------------------------------------------
 func FetchQuizzesByQuizId(db *sql.DB, quizId int) (*types.Quiz, error) {
-    query := `SELECT quiz_name, level, created_at FROM quizzes WHERE id = $1`
+	query := `SELECT quiz_name, level, created_at FROM quizzes WHERE id = $1`
 
-    // Use QueryRow for a single result
-    row := db.QueryRow(query, quizId)
+	// Use QueryRow for a single result
+	row := db.QueryRow(query, quizId)
 
-    // Initialize the quiz variable
-    quiz := &types.Quiz{}
+	// Initialize the quiz variable
+	quiz := &types.Quiz{}
 
-    // Scan the result into the quiz structure
-    err := row.Scan(&quiz.QuizName, &quiz.Level, &quiz.CreatedAt)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            // Return a nil quiz with a meaningful error if no rows are found
-            return nil, fmt.Errorf("no quiz found with id %d", quizId)
-        }
-        return nil, err
-    }
+	// Scan the result into the quiz structure
+	err := row.Scan(&quiz.QuizName, &quiz.Level, &quiz.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Return a nil quiz with a meaningful error if no rows are found
+			return nil, fmt.Errorf("no quiz found with id %d", quizId)
+		}
+		return nil, err
+	}
 
-    return quiz, nil
+	return quiz, nil
 }
-
-
 
 // -------------------- ---------------------------------
 
