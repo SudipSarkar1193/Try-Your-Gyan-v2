@@ -27,10 +27,6 @@ func main() {
 		log.Println("Error loading Env file", err)
 	}
 
-	// if err := database.UpdateUserBio(db, 48, "Often the best minds tends to loose objectivity in the persuit of excellence."); err != nil {
-	// 	log.Println("Error in UpdateUserBio : ", err)
-	// }
-
 	// Initialize Firebase Auth client
 	client := handlers.InitializeFirebaseApp()
 
@@ -55,7 +51,7 @@ func main() {
 	router.HandleFunc("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
 	router.HandleFunc("/api/users/verify-email", middlewares.AuthMiddleware(handlers.VerifyEmailToUpdate(db, client)))
 	router.HandleFunc("/api/users/update-profile", middlewares.AuthMiddleware(handlers.UpdateUserDetails(db)))
-	router.HandleFunc("/api/quiz/generate", middlewares.AuthMiddleware(handlers.GenerateQuiz()))
+	router.HandleFunc("/api/quiz/generate",handlers.GenerateQuiz())
 	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
 	router.HandleFunc("/api/quiz/questions/new", middlewares.AuthMiddleware(handlers.InsertQuestions(db)))
 	router.HandleFunc("/api/quiz/quizzes", middlewares.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {

@@ -508,6 +508,8 @@ func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
 
 		user, err := database.RetrieveUser(db, userID)
 
+		fmt.Printf("%+v\n",user)
+
 		if err != nil {
 			fmt.Println("Error retrieving user from database", err)
 
@@ -517,11 +519,17 @@ func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
 
 		prevImgUrl := user.ProfileImg
 
-		if err := cloudinary.DeleteImage(cld, ctx, prevImgUrl); err != nil {
-			fmt.Println("Error Deleting previous profile image", err)
+		fmt.Println("DEBUG : prevImgUrl ",prevImgUrl);
+		fmt.Println("DEBUG : user.ProfileImg",user.ProfileImg);
+		
 
-			http.Error(w, fmt.Sprintf("Error Deleting previous profile image : %v", err.Error()), http.StatusInternalServerError)
-			return
+		if(prevImgUrl != ""){
+			if err := cloudinary.DeleteImage(cld, ctx, prevImgUrl); err != nil {
+				fmt.Println("Error Deleting previous profile image", err)
+	
+				http.Error(w, fmt.Sprintf("Error Deleting previous profile image : %v", err.Error()), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		if err := database.UpdateUserProfilePic(db, userID, url); err != nil {

@@ -9,15 +9,16 @@ async function f1(){
     try {
         console.log("-->>", topic, value, difficulty);
     
-        const response = await fetch(`http://127.0.0.1:5000/api/quiz/new`, {
+        const response = await fetch(`http://127.0.0.1:5000/api/quiz/generate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization : `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Mzc5OTc5ODAsIm5hbWUiOiJTdWRpcCIsInN1YiI6Nzl9.XorWdq85poch8RsS6Ja9b0-qa-bj7jQ_HkrOXk5el-E`
           },
           body: JSON.stringify({
-            topic,
-            num_questions: value,
-            difficulty,
+            topic:"Compiler Design",
+            num_questions: 5,
+            difficulty:"Hard",
           }),
           
         });
@@ -57,7 +58,7 @@ async function f1(){
     
         const jsonRes = await response.json();
         
-        //console.log("jsonRes",jsonRes.data.Candidates[0].Content.Parts)
+        console.log("jsonRes ==>>",jsonRes)
         
         let data = null;
         if (jsonRes) data = JSON.parse(jsonRes.data.Candidates[0].Content.Parts);
