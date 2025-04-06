@@ -10,18 +10,20 @@
     
     COPY . .
     
-    RUN GOOS=linux GOARCH=amd64 go build -v -o /app/server ./main.go
+    # ✅ Build a static binary
+    RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o /app/server ./main.go
     
     
     # --------------------
     # Stage 2: Run the app
     # --------------------
-    FROM debian:bullseye-slim
+    FROM alpine:latest
     
-    RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+    RUN apk --no-cache add ca-certificates
     
     WORKDIR /root/
     
+    # ✅ Copy the static binary
     COPY --from=builder /app/server ./server
     RUN chmod +x ./server
     
