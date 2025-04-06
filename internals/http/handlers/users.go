@@ -327,13 +327,11 @@ func VerifyEmailToUpdate(db *sql.DB, client *auth.Client) http.HandlerFunc {
 				http.Error(w, fmt.Sprintf("Error retrieving the user : %v", err), http.StatusInternalServerError)
 				return
 			}
-			
+
 			if err := database.UpdateUserEmail(db, userID, reqData.NewEmail); err != nil {
 				http.Error(w, fmt.Sprintf("Error updating email , %v", err), http.StatusInternalServerError)
 				return
 			}
-
-			
 
 			if err := database.DeleteOTPbyUserId(db, userID); err != nil {
 				http.Error(w, fmt.Sprintf("Error deleting the otp : %v", err), http.StatusInternalServerError)
@@ -508,7 +506,7 @@ func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
 
 		user, err := database.RetrieveUser(db, userID)
 
-		fmt.Printf("%+v\n",user)
+		fmt.Printf("%+v\n", user)
 
 		if err != nil {
 			fmt.Println("Error retrieving user from database", err)
@@ -519,14 +517,13 @@ func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
 
 		prevImgUrl := user.ProfileImg
 
-		fmt.Println("DEBUG : prevImgUrl ",prevImgUrl);
-		fmt.Println("DEBUG : user.ProfileImg",user.ProfileImg);
-		
+		fmt.Println("DEBUG : prevImgUrl ", prevImgUrl)
+		fmt.Println("DEBUG : user.ProfileImg", user.ProfileImg)
 
-		if(prevImgUrl != ""){
+		if prevImgUrl != "" {
 			if err := cloudinary.DeleteImage(cld, ctx, prevImgUrl); err != nil {
 				fmt.Println("Error Deleting previous profile image", err)
-	
+
 				http.Error(w, fmt.Sprintf("Error Deleting previous profile image : %v", err.Error()), http.StatusInternalServerError)
 				return
 			}

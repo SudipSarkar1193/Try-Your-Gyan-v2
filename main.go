@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -11,20 +12,68 @@ import (
 
 	"log/slog"
 
+	"firebase.google.com/go/v4/auth"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/config"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/database"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/http/handlers"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/middlewares"
 	"github.com/rs/cors"
+
+	"github.com/gorilla/mux"
 )
 
+// Route struct to store API endpoints
+type Route struct {
+	Path    string
+	Method  string
+	Handler http.HandlerFunc
+	Auth    bool // Apply authentication middleware if true
+}
+
+// Function to return all API routes
+func getRoutes(db *sql.DB, client *auth.Client) []Route {
+	return []Route{
+		{"/api/users/new", "POST", handlers.New(db), false},
+		{"/api/users/login", "POST", handlers.Login(db), false},
+		{"/api/users/auth/google", "POST", handlers.HandleFirebaseAuth(db), false},
+		{"/api/users/auth/verify", "POST", handlers.VerifyUser(db), true},
+		{"/api/users/auth/newotp", "POST", handlers.RequestNewOTP(db), true},
+		{"/api/users/newotp", "POST", handlers.RequestNewOTPToVerifyEmail(db), true},
+		{"/api/users/update-profile-pic", "PUT", handlers.UpdateProfilePic(db), true},
+		{"/api/users/verify-email", "POST", handlers.VerifyEmailToUpdate(db, client), true},
+		{"/api/users/update-profile", "PUT", handlers.UpdateUserDetails(db), true},
+		{"/api/quiz/generate", "POST", handlers.GenerateQuiz(), false},
+		{"/api/quiz/new", "POST", handlers.CreateQuizInDatabase(db), true},
+		{"/api/quiz/questions/new", "POST", handlers.InsertQuestions(db), true},
+		{"/api/quiz/quizzes", "GET", handlers.GetUserQuizzesHandler(db), true},
+		{"/api/quiz/quizzes", "DELETE", handlers.DeleteQuiz(db), true},
+		{"/api/quiz/questions", "GET", handlers.GetQuizQuestionsHandler(db), false},
+		{"/api/auth/me", "GET", middlewares.GetUserDetails(db), true},
+	}
+}
+
+// Register routes dynamically using Gorilla Mux
+func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
+	for _, route := range getRoutes(db, client) {
+		handler := route.Handler
+
+		if route.Auth {
+			handler = middlewares.AuthMiddleware(handler)
+		}
+
+		router.HandleFunc(route.Path, handler).Methods(route.Method)
+
+		log.Printf("Registered route: %s [%s]", route.Path, route.Method)
+	}
+}
+
 func main() {
-	// Load configuration and connect to the database
+	// Load configuration and connect to database
 	cfg := config.MustLoad()
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 
 	if err := config.LoadEnvFile(".env"); err != nil {
-		log.Println("Error loading Env file", err)
+		slog.Warn("Error loading .env file", slog.String("error", err.Error()))
 	}
 
 	// Initialize Firebase Auth client
@@ -39,37 +88,13 @@ func main() {
 	})
 
 	// Initialize router
-	router := http.NewServeMux()
+	router := mux.NewRouter()
 
-	// Set up routes
-	router.HandleFunc("/api/users/new", handlers.New(db))
-	router.HandleFunc("/api/users/login", handlers.Login(db))
-	router.HandleFunc("/api/users/auth/google", handlers.HandleFirebaseAuth(db))
-	router.HandleFunc("/api/users/auth/verify", middlewares.VerifyUserMiddleware(handlers.VerifyUser(db)))
-	router.HandleFunc("/api/users/auth/newotp", middlewares.VerifyUserMiddleware(handlers.RequestNewOTP(db)))
-	router.HandleFunc("/api/users/newotp", middlewares.AuthMiddleware(handlers.RequestNewOTPToVerifyEmail(db)))
-	router.HandleFunc("/api/users/update-profile-pic", middlewares.AuthMiddleware(handlers.UpdateProfilePic(db)))
-	router.HandleFunc("/api/users/verify-email", middlewares.AuthMiddleware(handlers.VerifyEmailToUpdate(db, client)))
-	router.HandleFunc("/api/users/update-profile", middlewares.AuthMiddleware(handlers.UpdateUserDetails(db)))
-	router.HandleFunc("/api/quiz/generate",handlers.GenerateQuiz())
-	router.HandleFunc("/api/quiz/new", middlewares.AuthMiddleware(handlers.CreateQuizInDatabase(db)))
-	router.HandleFunc("/api/quiz/questions/new", middlewares.AuthMiddleware(handlers.InsertQuestions(db)))
-	router.HandleFunc("/api/quiz/quizzes", middlewares.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetUserQuizzesHandler(db)(w, r)
-		case http.MethodDelete:
-			handlers.DeleteQuiz(db)(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	}))
-	router.HandleFunc("/api/quiz/questions", handlers.GetQuizQuestionsHandler(db))
-	router.HandleFunc("/api/auth/me", middlewares.AuthMiddleware(middlewares.GetUserDetails(db)))
+	// Register routes dynamically
+	registerRoutes(router, db, client)
 
-	// Wrap with middlewares
+	// Wrap with CORS middleware
 	handler := c.Handler(router)
-	//handler = middlewares.HandleOptionsMiddleware(handler)
 	handler = middlewares.CoopMiddleware(handler)
 
 	// Setup HTTP server
@@ -78,8 +103,6 @@ func main() {
 		Handler: handler,
 	}
 
-	slog.Info("Server started at", slog.String("PORT", cfg.Addr))
-
 	// Graceful shutdown setup
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -87,6 +110,8 @@ func main() {
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal("Failed to start server:", err)
+		} else {
+			slog.Info("Server started at", slog.String("PORT", cfg.Addr))
 		}
 	}()
 
