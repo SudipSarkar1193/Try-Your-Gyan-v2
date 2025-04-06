@@ -10,8 +10,8 @@
     
     COPY . .
     
-    # Build binary
-    RUN go build -o /app/server ./main.go
+    # IMPORTANT: Cross-compile for Linux
+    RUN GOOS=linux GOARCH=amd64 go build -v -o /app/server ./main.go
     
     
     # --------------------
