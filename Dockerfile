@@ -10,20 +10,20 @@
     
     COPY . .
     
-    # IMPORTANT: Cross-compile for Linux
     RUN GOOS=linux GOARCH=amd64 go build -v -o /app/server ./main.go
     
     
     # --------------------
     # Stage 2: Run the app
     # --------------------
-    FROM alpine:latest
+    FROM debian:bullseye-slim
     
-    RUN apk --no-cache add ca-certificates
+    RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
     
     WORKDIR /root/
     
-    COPY --from=builder /app/server .
+    COPY --from=builder /app/server ./server
+    RUN chmod +x ./server
     
     EXPOSE 8080
     
