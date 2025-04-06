@@ -73,7 +73,7 @@ func main() {
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 
 	if err := config.LoadEnvFile(".env"); err != nil {
-		slog.Warn("Error loading .env file", slog.String("error", err.Error()))
+		slog.Warn("Error loading .env file [Maybe in DEPLOYMENT]", slog.String("error", err.Error()))
 	}
 
 	// Initialize Firebase Auth client
