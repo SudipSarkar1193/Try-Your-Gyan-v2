@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -274,7 +275,9 @@ func VerifyUser(db *sql.DB) http.HandlerFunc {
 
 		if otp == reqData.OTP {
 
-			if err := database.UpdateUserById(db, int64(userID), true); err != nil {
+			ctx := context.Background()
+
+			if err := database.UpdateUserById(ctx, db, int64(userID), true); err != nil {
 				http.Error(w, fmt.Sprintf("Error updating user from Database, %v", err), http.StatusInternalServerError)
 				return
 			}

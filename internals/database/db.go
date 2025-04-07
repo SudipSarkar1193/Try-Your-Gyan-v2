@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -349,10 +350,10 @@ func RetrieveUser(db *sql.DB, identifier any) (*types.User, error) {
 
 /****************************************************************************************************/
 
-func UpdateUserById(db *sql.DB, id int64, isVarified bool) error {
+func UpdateUserById(ctx context.Context, db *sql.DB, id int64, isVarified bool) error {
 	// Update the isVarified field in the database
 	query := `UPDATE users SET isVarified = $1 WHERE id = $2`
-	_, err := db.Exec(query, isVarified, id)
+	_, err := db.ExecContext(ctx, query, isVarified, id)
 	if err != nil {
 		return fmt.Errorf("error updating user with id %d: %v", id, err)
 	}
@@ -758,10 +759,10 @@ func SetupProfileImgColumn(db *sql.DB, defaultValue string) error {
 	return nil
 }
 
-func UserFindByEmailAndUpdateProfileImg(db *sql.DB, email string, newProfileImg string) error {
+func UserFindByEmailAndUpdateProfileImg(ctx context.Context, db *sql.DB, email string, newProfileImg string) error {
 
 	updateQuery := "UPDATE users SET profileImg = $1 WHERE email = $2;"
-	_, err := db.Exec(updateQuery, newProfileImg, email)
+	_, err := db.ExecContext(ctx, updateQuery, newProfileImg, email)
 	if err != nil {
 		return fmt.Errorf("failed to update profileImg for user with email %s: %w", email, err)
 	}

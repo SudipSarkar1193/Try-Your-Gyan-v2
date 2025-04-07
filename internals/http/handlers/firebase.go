@@ -44,14 +44,27 @@ func InitializeFirebaseApp() *auth.Client {
 
 // Verify Firebase ID Token
 func VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
-
 	if FirebaseAuthClient == nil {
 		return nil, fmt.Errorf("firebase Auth client not initialized")
 	}
 
+	// Early exit if context is already cancelled
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	// Attempt verification
 	token, err := FirebaseAuthClient.VerifyIDToken(ctx, idToken)
 	if err != nil {
-		return nil, err
+		// Check if context was canceled during the call
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			return nil, err
+		}
 	}
 
 	return token, nil
