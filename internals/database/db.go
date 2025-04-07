@@ -310,7 +310,7 @@ func InsertNewUser(db *sql.DB, user *types.User) (int64, error) {
 	}
 
 	if err != nil {
-		log.Printf("err != nil : %v",err)
+		log.Printf("err != nil : %v", err)
 		return -1, err
 	}
 

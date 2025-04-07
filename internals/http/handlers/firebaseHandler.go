@@ -64,7 +64,7 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 			ProfileImg string `json:"profileImg"`
 		}
 		log.Panicln("DEBUG : requestData :")
-		fmt.Printf("%+v\n", requestData )
+		fmt.Printf("%+v\n", requestData)
 
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 			log.Printf("[FirebaseAuth] Invalid JSON: %v", err)
@@ -78,7 +78,7 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 		var shouldUpdateProfileImg bool
 		var shouldVerifyUser bool
 
-		log.Println("DEBUG : IS NEW USER : ",requestData.IsNewUser);
+		log.Println("DEBUG : IS NEW USER : ", requestData.IsNewUser)
 
 		if requestData.IsNewUser {
 			IsNewUserStart := time.Now()
@@ -217,12 +217,12 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 		respondWithTokens(w, user, isCondHit1, isCondHit2, start)
 
 		go func() {
-			
+
 			ctx := context.Background()
 			goRoutineTime := time.Now()
 			if shouldUpdateProfileImg {
 				log.Println("Go routine for updating user ->started ")
-			
+
 				if err := database.UserFindByEmailAndUpdateProfileImg(ctx, db, user.Email, requestData.ProfileImg); err != nil {
 					log.Printf("[Post-Response Task] Failed to update profile image: %v", err)
 				}
