@@ -56,60 +56,53 @@ func getRoutes(db *sql.DB, client *auth.Client) []Route {
 func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
 	for _, route := range getRoutes(db, client) {
 		handler := route.Handler
-
 		if route.Auth {
 			handler = middlewares.AuthMiddleware(handler)
 		}
-
-		// Register the route with its method and also allow OPTIONS for CORS preflight
 		router.HandleFunc(route.Path, handler).Methods(route.Method, "OPTIONS")
-
 		log.Printf("Registered route: %s [%s, OPTIONS]", route.Path, route.Method)
 	}
 }
 
 func main() {
-	// Load configuration and connect to database
 	cfg := config.MustLoad()
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
-
-	if err := config.LoadEnvFile(".env"); err != nil {
-		slog.Warn("Error loading .env file [Maybe in DEPLOYMENT]", slog.String("error", err.Error()))
+	if db == nil {
+		log.Fatal("Database connection failed")
 	}
 
-	// Initialize Firebase Auth client
-	client := handlers.InitializeFirebaseApp()
+	if err := config.LoadEnvFile(".env"); err != nil {
+		slog.Warn("Error loading .env file", slog.String("error", err.Error()))
+	}
 
-	// Configure CORS
+	client := handlers.InitializeFirebaseApp()
+	if client == nil {
+		log.Fatal("Firebase initialization failed")
+	}
+
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "https://try-your-gyan.vercel.app"},
+		AllowedOrigins:   []string{"https://try-your-gyan.vercel.app", "http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
+		Debug:            true, // Enable CORS debug logs
 	})
 
-	// Initialize router
 	router := mux.NewRouter()
-
-	// Register routes dynamically
 	registerRoutes(router, db, client)
 
-	// Catch-all OPTIONS handler for CORS preflight
 	router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Wrap with CORS middleware
 	handler := c.Handler(router)
 	handler = middlewares.CoopMiddleware(handler)
 
-	// Setup HTTP server
 	server := http.Server{
 		Addr:    cfg.Addr,
 		Handler: handler,
 	}
 
-	// Graceful shutdown setup
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -124,7 +117,6 @@ func main() {
 	<-done
 	slog.Info("Shutting down the server...")
 
-	// Gracefully shutdown the server with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

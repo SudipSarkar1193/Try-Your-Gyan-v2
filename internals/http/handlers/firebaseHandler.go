@@ -20,6 +20,8 @@ import (
 // HandleFirebaseAuth handles Firebase authentication for users
 func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request Origin: %s", r.Header.Get("Origin"))
+		w.Header().Set("Access-Control-Allow-Origin", "https://try-your-gyan.vercel.app") // Temporary override for debugging
 
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
