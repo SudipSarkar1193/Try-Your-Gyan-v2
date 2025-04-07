@@ -213,10 +213,12 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 		respondWithTokens(w, user, isCondHit1, isCondHit2, start)
 
 		go func() {
-			log.Println("Go routine for updating user ->started ")
-			goRoutineTime := time.Now()
+			
 			ctx := context.Background()
+			goRoutineTime := time.Now()
 			if shouldUpdateProfileImg {
+				log.Println("Go routine for updating user ->started ")
+			
 				if err := database.UserFindByEmailAndUpdateProfileImg(ctx, db, user.Email, requestData.ProfileImg); err != nil {
 					log.Printf("[Post-Response Task] Failed to update profile image: %v", err)
 				}
