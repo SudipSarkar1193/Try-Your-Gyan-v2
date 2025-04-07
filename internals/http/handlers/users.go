@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 
 	"math/rand"
 	"net/http"
@@ -144,7 +145,11 @@ func New(db *sql.DB) http.HandlerFunc {
 
 func Login(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		log.Println("[Login] Request received")
+
 		if r.Method != http.MethodPost {
+			log.Printf("[Login] Invalid HTTP method: %v", r.Method)
 			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
 			return
 		}
@@ -156,44 +161,51 @@ func Login(db *sql.DB) http.HandlerFunc {
 
 		err := json.NewDecoder(r.Body).Decode(&loginData)
 		if err != nil {
+			log.Printf("[Login] Failed to decode request body: %v", err)
 			http.Error(w, "Invalid request payload", http.StatusBadRequest)
 			return
 		}
 
 		validate := validator.New()
 		if err := validate.Struct(loginData); err != nil {
+			log.Printf("[Login] Validation error: %v", err)
 			response.ValidateResponse(w, err)
 			return
 		}
 
-		// Retrieve user by email or username
+		log.Println("[Login] Retrieving user")
 		user, err := database.RetrieveUser(db, loginData.Identifier)
 		if err != nil {
+			log.Printf("[Login] User not found: %v", err)
 			http.Error(w, "user not found", http.StatusUnauthorized)
 			return
 		}
 
-		// Check password
+		log.Println("[Login] Checking password")
 		isPasswordValid, err := password.CheckPassword(loginData.Password, user.Password)
 		if err != nil || !isPasswordValid {
+			log.Printf("[Login] Invalid password")
 			http.Error(w, "Wrong password", http.StatusUnauthorized)
 			return
 		}
 
-		// Generate tokens
+		log.Println("[Login] Generating tokens")
 		accessToken, refreshToken, err := tokens.GenerateTokens(user)
 		if err != nil {
+			log.Printf("[Login] Token generation failed: %v", err)
 			http.Error(w, fmt.Sprintf("Could not generate tokens : %v", err.Error()), http.StatusInternalServerError)
 			return
 		}
 
-		//Check if varified :
 		if !user.IsVarified {
+			log.Println("[Login] User not verified, generating verify token")
 			verifyToken, err := tokens.GenerateVerifyToken(user)
 			if err != nil {
+				log.Printf("[Login] Failed to generate verify token: %v", err)
 				http.Error(w, fmt.Sprintf("Could not generate tokens : %v", err.Error()), http.StatusInternalServerError)
 				return
 			}
+
 			tokenResponse := map[string]any{
 				"access_token":  accessToken,
 				"refresh_token": refreshToken,
@@ -202,11 +214,11 @@ func Login(db *sql.DB) http.HandlerFunc {
 				"isNotVarified": true,
 			}
 
+			log.Printf("[Login] Login success (unverified user) in %v", time.Since(start))
 			response.WriteResponse(w, response.CreateResponse(tokenResponse, http.StatusOK, "Logged in successfully", "", "", false, ""))
 			return
 		}
 
-		// Send tokens as JSON response
 		tokenResponse := map[string]any{
 			"access_token":  accessToken,
 			"refresh_token": refreshToken,
@@ -214,6 +226,7 @@ func Login(db *sql.DB) http.HandlerFunc {
 			"isVarified":    user.IsVarified,
 		}
 
+		log.Printf("[Login] Login success in %v", time.Since(start))
 		response.WriteResponse(w, response.CreateResponse(tokenResponse, http.StatusOK, "Logged in successfully", "", "", false, ""))
 	}
 }
