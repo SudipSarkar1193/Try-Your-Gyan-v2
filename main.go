@@ -65,64 +65,66 @@ func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
 }
 
 func main() {
-	cfg := config.MustLoad()
-	db := database.ConnectToDatabase(cfg.PsqlInfo)
-	if db == nil {
-		log.Fatal("Database connection failed")
-	}
+    cfg := config.MustLoad()
+    db := database.ConnectToDatabase(cfg.PsqlInfo)
+    if db == nil {
+        log.Fatal("Database connection failed")
+    }
 
-	if err := config.LoadEnvFile(".env"); err != nil {
-		slog.Warn("Error loading .env file", slog.String("error", err.Error()))
-	}
+    client := handlers.InitializeFirebaseApp()
+    if client == nil {
+        log.Fatal("Firebase initialization failed")
+    }
 
-	client := handlers.InitializeFirebaseApp()
-	if client == nil {
-		log.Fatal("Firebase initialization failed")
-	}
+    c := cors.New(cors.Options{
+        AllowedOrigins:   []string{"https://try-your-gyan.vercel.app", "http://localhost:5173"},
+        AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowedHeaders:   []string{"Content-Type", "Authorization"},
+        AllowCredentials: true,
+        Debug:            true,
+    })
 
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://try-your-gyan.vercel.app", "http://localhost:5173"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
-		AllowCredentials: true,
-		Debug:            true, // Enable CORS debug logs
-	})
+    router := mux.NewRouter()
+    registerRoutes(router, db, client)
 
-	router := mux.NewRouter()
-	registerRoutes(router, db, client)
+    router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+    })
 
-	router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+    // Add a health check endpoint
+    router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+        w.Write([]byte("OK"))
+    })
 
-	handler := c.Handler(router)
-	handler = middlewares.CoopMiddleware(handler)
+    handler := c.Handler(router)
+    handler = middlewares.CoopMiddleware(handler)
 
-	server := http.Server{
-		Addr:    cfg.Addr,
-		Handler: handler,
-	}
+    server := http.Server{
+        Addr:    cfg.Addr,
+        Handler: handler,
+    }
 
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+    slog.Info("Server starting at", slog.String("PORT", cfg.Addr))
 
-	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("Failed to start server:", err)
-		} else {
-			slog.Info("Server started at", slog.String("PORT", cfg.Addr))
-		}
-	}()
+    done := make(chan os.Signal, 1)
+    signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	<-done
-	slog.Info("Shutting down the server...")
+    go func() {
+        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+            log.Fatal("Failed to start server:", err)
+        }
+    }()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+    <-done
+    slog.Info("Shutting down the server...")
 
-	if err := server.Shutdown(ctx); err != nil {
-		slog.Error("Failed to shut down server", slog.String("Error", err.Error()))
-	} else {
-		slog.Info("Server shut down successfully")
-	}
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    if err := server.Shutdown(ctx); err != nil {
+        slog.Error("Failed to shut down server", slog.String("Error", err.Error()))
+    } else {
+        slog.Info("Server shut down successfully")
+    }
 }
