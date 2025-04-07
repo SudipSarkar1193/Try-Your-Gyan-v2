@@ -63,6 +63,8 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 			IsNewUser  bool   `json:"isNewUser"`
 			ProfileImg string `json:"profileImg"`
 		}
+		log.Panicln("DEBUG : requestData :")
+		fmt.Printf("%+v\n", requestData )
 
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 			log.Printf("[FirebaseAuth] Invalid JSON: %v", err)
@@ -76,7 +78,7 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 		var shouldUpdateProfileImg bool
 		var shouldVerifyUser bool
 
-		log.Println("DEBUG :: IS NEW USER : %v",requestData.IsNewUser);
+		log.Println("DEBUG : IS NEW USER : %v",requestData.IsNewUser);
 
 		if requestData.IsNewUser {
 			IsNewUserStart := time.Now()
