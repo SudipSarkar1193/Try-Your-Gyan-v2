@@ -76,6 +76,8 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 		var shouldUpdateProfileImg bool
 		var shouldVerifyUser bool
 
+		log.Println("DEBUG :: IS NEW USER : %v",requestData.IsNewUser);
+
 		if requestData.IsNewUser {
 			IsNewUserStart := time.Now()
 
