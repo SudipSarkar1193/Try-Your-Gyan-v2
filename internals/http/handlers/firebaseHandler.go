@@ -20,8 +20,8 @@ import (
 // HandleFirebaseAuth handles Firebase authentication for users
 func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Request Origin: %s", r.Header.Get("Origin"))
-		w.Header().Set("Access-Control-Allow-Origin", "https://try-your-gyan.vercel.app") // Temporary override for debugging
+		// log.Printf("Request Origin: %s", r.Header.Get("Origin"))
+		// w.Header().Set("Access-Control-Allow-Origin", "https://try-your-gyan.vercel.app") // Temporary override for debugging
 
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -65,8 +65,8 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 			IsNewUser  bool   `json:"isNewUser"`
 			ProfileImg string `json:"profileImg"`
 		}
-		log.Println("DEBUG : requestData :")
-		fmt.Printf("%+v\n", requestData)
+		
+		log.Printf("DEBUG : requestData : %+v\n", requestData)
 
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 			log.Printf("[FirebaseAuth] Invalid JSON: %v", err)
