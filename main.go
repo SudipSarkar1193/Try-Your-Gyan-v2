@@ -54,14 +54,14 @@ func getRoutes(db *sql.DB, client *auth.Client) []Route {
 
 // Register routes dynamically using Gorilla Mux
 func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
-	for _, route := range getRoutes(db, client) {
-		handler := route.Handler
-		if route.Auth {
-			handler = middlewares.AuthMiddleware(handler)
-		}
-		router.HandleFunc(route.Path, handler).Methods(route.Method, "OPTIONS")
-		log.Printf("Registered route: %s [%s, OPTIONS]", route.Path, route.Method)
-	}
+    for _, route := range getRoutes(db, client) {
+        handler := route.Handler
+        if route.Auth {
+            handler = middlewares.AuthMiddleware(handler)
+        }
+        router.HandleFunc(route.Path, handler).Methods(route.Method, "OPTIONS")
+        slog.Info("Registered route", slog.String("path", route.Path), slog.String("method", route.Method))
+    }
 }
 
 func main() {
@@ -76,12 +76,17 @@ func main() {
         log.Fatal("Firebase initialization failed")
     }
 
+    origins := []string{"https://try-your-gyan.vercel.app","http://localhost:5173"}
+    if localOrigin := os.Getenv("CORS_LOCAL_ORIGIN"); localOrigin != "" {
+        origins = append(origins, localOrigin)
+    }
+    
     c := cors.New(cors.Options{
-        AllowedOrigins:   []string{"https://try-your-gyan.vercel.app", "http://localhost:5173"},
+        AllowedOrigins:   origins,
         AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
         AllowedHeaders:   []string{"Content-Type", "Authorization"},
         AllowCredentials: true,
-        Debug:            true,
+        Debug:            false,
     })
 
     router := mux.NewRouter()
@@ -91,8 +96,13 @@ func main() {
         w.WriteHeader(http.StatusOK)
     })
 
-    // Add a health check endpoint
+    // ADDING a health checking route 
     router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        if err := db.Ping(); err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            w.Write([]byte("Database unavailable"))
+            return
+        }
         w.WriteHeader(http.StatusOK)
         w.Write([]byte("OK"))
     })
@@ -105,12 +115,11 @@ func main() {
         Handler: handler,
     }
 
-    slog.Info("Server starting at", slog.String("PORT", cfg.Addr))
-
     done := make(chan os.Signal, 1)
     signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
     go func() {
+        slog.Info("Server starting at", slog.String("PORT", cfg.Addr))
         if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
             log.Fatal("Failed to start server:", err)
         }
@@ -123,7 +132,7 @@ func main() {
     defer cancel()
 
     if err := server.Shutdown(ctx); err != nil {
-        slog.Error("Failed to shut down server", slog.String("Error", err.Error()))
+        slog.Error("Failed to shut down server", slog.String("error", err.Error()))
     } else {
         slog.Info("Server shut down successfully")
     }
