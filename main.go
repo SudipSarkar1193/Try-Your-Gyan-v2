@@ -61,9 +61,10 @@ func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
 			handler = middlewares.AuthMiddleware(handler)
 		}
 
-		router.HandleFunc(route.Path, handler).Methods(route.Method)
+		// Register the route with its method and also allow OPTIONS for CORS preflight
+		router.HandleFunc(route.Path, handler).Methods(route.Method, "OPTIONS")
 
-		log.Printf("Registered route: %s [%s]", route.Path, route.Method)
+		log.Printf("Registered route: %s [%s, OPTIONS]", route.Path, route.Method)
 	}
 }
 
@@ -83,7 +84,7 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173", "https://try-your-gyan.vercel.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization", "Access-Control-Allow-Origin"},
+		AllowedHeaders: []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
 
