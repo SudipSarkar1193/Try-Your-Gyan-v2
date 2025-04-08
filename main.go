@@ -59,8 +59,8 @@ func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
         if route.Auth {
             handler = middlewares.AuthMiddleware(handler)
         }
-        router.HandleFunc(route.Path, handler).Methods(route.Method)
-        slog.Info("Registered route", slog.String("path", route.Path), slog.String("method", route.Method))
+        router.HandleFunc(route.Path, handler).Methods(route.Method) // Or .Methods(route.Method, "OPTIONS")
+        log.Printf("Registered route: %s [%s]", route.Path, route.Method)
     }
 }
 
@@ -76,7 +76,7 @@ func main() {
         log.Fatal("Firebase initialization failed")
     }
 
-    origins := []string{"https://try-your-gyan.vercel.app","http://localhost:5173"}
+    origins := []string{"https://try-your-gyan.vercel.app", "http://localhost:5173"}
     if localOrigin := os.Getenv("CORS_LOCAL_ORIGIN"); localOrigin != "" {
         origins = append(origins, localOrigin)
     }
@@ -84,19 +84,14 @@ func main() {
     c := cors.New(cors.Options{
         AllowedOrigins:   origins,
         AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-        AllowedHeaders:   []string{"Content-Type", "Authorization"},
+        AllowedHeaders:   []string{"Content-Type", "Authorization", "userID"},
         AllowCredentials: true,
-        Debug:            true,
+        Debug:            false, // Back to false
     })
 
     router := mux.NewRouter()
     registerRoutes(router, db, client)
 
-    // router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    //     w.WriteHeader(http.StatusOK)
-    // })     -----> It’s redundant—cors handles OPTIONS for all routes based on AllowedMethods.
-
-    // ADDING a health checking route 
     router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
         if err := db.Ping(); err != nil {
             w.WriteHeader(http.StatusInternalServerError)
@@ -137,3 +132,4 @@ func main() {
         slog.Info("Server shut down successfully")
     }
 }
+
