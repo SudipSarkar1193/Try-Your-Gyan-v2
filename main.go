@@ -92,9 +92,9 @@ func main() {
     router := mux.NewRouter()
     registerRoutes(router, db, client)
 
-    router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(http.StatusOK)
-    })
+    // router.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    //     w.WriteHeader(http.StatusOK)
+    // })     -----> It’s redundant—cors handles OPTIONS for all routes based on AllowedMethods.
 
     // ADDING a health checking route 
     router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
