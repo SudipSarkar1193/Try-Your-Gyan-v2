@@ -474,6 +474,11 @@ func RequestNewOTPToVerifyEmail(db *sql.DB) http.HandlerFunc {
 
 func UpdateProfilePic(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		
+		if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusOK) // Let cors add headers
+            return
+        }
 
 		if r.Method != http.MethodPut {
 			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
