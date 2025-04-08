@@ -59,7 +59,7 @@ func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
         if route.Auth {
             handler = middlewares.AuthMiddleware(handler)
         }
-        router.HandleFunc(route.Path, handler).Methods(route.Method, "OPTIONS")
+        router.HandleFunc(route.Path, handler).Methods(route.Method)
         slog.Info("Registered route", slog.String("path", route.Path), slog.String("method", route.Method))
     }
 }
@@ -86,7 +86,7 @@ func main() {
         AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
         AllowedHeaders:   []string{"Content-Type", "Authorization"},
         AllowCredentials: true,
-        Debug:            false,
+        Debug:            true,
     })
 
     router := mux.NewRouter()
