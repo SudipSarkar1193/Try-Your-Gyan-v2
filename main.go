@@ -65,6 +65,7 @@ func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
 }
 
 func main() {
+	log.Println("Welcome to GO backend")
 	cfg := config.MustLoad()
 	db := database.ConnectToDatabase(cfg.PsqlInfo)
 	if db == nil {
