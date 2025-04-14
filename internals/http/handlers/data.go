@@ -21,7 +21,7 @@ import (
 )
 
 const pythonServerDev = "http://localhost:8000/generate-quiz"
-const pythonServerProduction = ""
+const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
 
 func normalizeTopic(topic string) string {
 	topic = strings.ToLower(strings.TrimSpace(topic))
@@ -70,7 +70,7 @@ func GenerateQuiz() http.HandlerFunc {
 			return
 		}
 
-		resp, err := http.Post(pythonServerDev, "application/json", bytes.NewBuffer(jsonData))
+		resp, err := http.Post(pythonServerProduction, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to call quiz service: %v", err.Error()), http.StatusInternalServerError)
 			return
