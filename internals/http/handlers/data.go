@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 
 	"net/http"
 	"strconv"
@@ -33,95 +34,109 @@ func normalizeTopic(topic string) string {
 }
 
 func GenerateQuiz() http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodPost {
-            http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
-            return
-        }
-        fmt.Println("INSIDE")
-        userIDStr := r.Header.Get("userID")
-        userID, err := strconv.Atoi(userIDStr)
-        if err != nil {
-            fmt.Println("Error converting userID:", err)
-            http.Error(w, fmt.Sprintf("Invalid verification token: %v", err.Error()), http.StatusBadRequest)
-            return
-        }
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Initialize logger with prefix for clarity
+		logger := log.New(log.Writer(), "[GenerateQuiz] ", log.LstdFlags)
 
-        var quizRequest types.QuizRequest
-        quizRequest.UserID = int64(userID)
+		if r.Method != http.MethodPost {
+			http.Error(w, "Only POST method is allowed", http.StatusBadRequest)
+			return
+		}
 
-        if err := json.NewDecoder(r.Body).Decode(&quizRequest); err != nil {
-            http.Error(w, fmt.Sprintf("Failed to decode JSON: %v", err.Error()), http.StatusInternalServerError)
-            return
-        }
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
+		if err != nil {
+			logger.Printf("Invalid userID: %v", err)
+			http.Error(w, "Invalid userID", http.StatusBadRequest)
+			return
+		}
 
-        // Normalize topic
-        normalizedTopic := normalizeTopic(quizRequest.Topic)
-        quizRequest.Topic = normalizedTopic
+		var quizRequest types.QuizRequest
+		quizRequest.UserID = int64(userID)
 
-        // Call Python FastAPI service
-        jsonData, err := json.Marshal(quizRequest)
-        if err != nil {
-            http.Error(w, fmt.Sprintf("Failed to marshal quizRequest: %v", err.Error()), http.StatusInternalServerError)
-            return
-        }
+		if err := json.NewDecoder(r.Body).Decode(&quizRequest); err != nil {
+			logger.Printf("Failed to decode JSON: %v", err)
+			http.Error(w, "Failed to decode request body", http.StatusInternalServerError)
+			return
+		}
 
-        resp, err := http.Post(pythonServerProduction, "application/json", bytes.NewBuffer(jsonData))
-        if err != nil {
-            http.Error(w, fmt.Sprintf("Failed to call quiz service: %v", err.Error()), http.StatusInternalServerError)
-            return
-        }
-        defer resp.Body.Close()
+		// Normalize topic
+		normalizedTopic := normalizeTopic(quizRequest.Topic)
+		quizRequest.Topic = normalizedTopic
 
-        // Read and log the raw response
-        body, err := io.ReadAll(resp.Body)
-        if err != nil {
-            http.Error(w, fmt.Sprintf("Failed to read response body: %v", err.Error()), http.StatusInternalServerError)
-            return
-        }
-        fmt.Println("FastAPI Response:", string(body))
+		// Call Python FastAPI service
+		jsonData, err := json.Marshal(quizRequest)
+		if err != nil {
+			logger.Printf("Failed to marshal quizRequest: %v", err)
+			http.Error(w, "Failed to process request", http.StatusInternalServerError)
+			return
+		}
 
-        // Decode the response
-        var data []interface{}
-        if err := json.Unmarshal(body, &data); err != nil {
-            http.Error(w, fmt.Sprintf("Failed to decode FastAPI response: %v", err.Error()), http.StatusInternalServerError)
-            return
-        }
+		resp, err := http.Post(pythonServerProduction, "application/json", bytes.NewBuffer(jsonData))
+		if err != nil {
+			logger.Printf("Failed to call FastAPI: %v", err)
+			http.Error(w, "Failed to generate quiz", http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
 
-        // Validate the response structure
-        if len(data) != 2 {
-            http.Error(w, "Invalid response format from quiz service", http.StatusInternalServerError)
-            return
-        }
+		// Read and log FastAPI response (minimal)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Printf("Failed to read FastAPI response: %v", err)
+			http.Error(w, "Failed to read response", http.StatusInternalServerError)
+			return
+		}
 
-        ok, isOkBool := data[0].(map[string]interface{})["ok"].(bool)
-        if !isOkBool {
-            http.Error(w, "Invalid 'ok' field in response", http.StatusInternalServerError)
-            return
-        }
+		// Decode response
+		var data []interface{}
+		if err := json.Unmarshal(body, &data); err != nil {
+			logger.Printf("Failed to decode FastAPI response: %v", err)
+			http.Error(w, "Invalid response from quiz service", http.StatusInternalServerError)
+			return
+		}
 
-        if !ok {
-            errorMsg := "Quiz generation failed"
-            if errors, ok := data[1].([]interface{}); ok && len(errors) > 0 {
-                if msg, ok := errors[0].(string); ok {
-                    errorMsg = msg
-                }
-            }
-            http.Error(w, errorMsg, http.StatusInternalServerError)
-            return
-        }
+		// Log response summary (avoid full dump unless needed)
+		if len(data) != 2 {
+			logger.Printf("Invalid response format: got %d elements", len(data))
+			http.Error(w, "Invalid quiz response", http.StatusInternalServerError)
+			return
+		}
 
-        // Check if questions array is empty
-        questions, isQuestionsArray := data[1].([]interface{})
-        if !isQuestionsArray || len(questions) == 0 {
-            http.Error(w, "No quiz questions generated", http.StatusInternalServerError)
-            return
-        }
+		ok, isOkBool := data[0].(map[string]interface{})["ok"].(bool)
+		if !isOkBool {
+			logger.Printf("Invalid 'ok' field in response")
+			http.Error(w, "Invalid quiz response", http.StatusInternalServerError)
+			return
+		}
 
-        // Create response (pass only the questions array to frontend if that's what's expected)
-        respData := response.CreateResponse(questions, 200, "Quiz generated successfully")
-        response.WriteResponse(w, respData)
-    }
+		if !ok {
+			errorMsg := "Quiz generation failed"
+			if errors, ok := data[1].([]interface{}); ok && len(errors) > 0 {
+				if msg, ok := errors[0].(string); ok {
+					errorMsg = msg
+				}
+			}
+			logger.Printf("FastAPI error: %s", errorMsg)
+			http.Error(w, errorMsg, http.StatusInternalServerError)
+			return
+		}
+
+		// Check questions array
+		questions, isQuestionsArray := data[1].([]interface{})
+		if !isQuestionsArray || len(questions) == 0 {
+			logger.Printf("No quiz questions generated: questions=%v", data[1])
+			http.Error(w, "No quiz questions available", http.StatusInternalServerError)
+			return
+		}
+
+		// Log success (minimal)
+		logger.Printf("Generated %d quiz questions", len(questions))
+
+		// Send questions to frontend (assuming frontend expects [questions])
+		respData := response.CreateResponse(questions, 200, "Quiz generated successfully")
+		response.WriteResponse(w, respData)
+	}
 }
 
 /*---------------------------------------*/
