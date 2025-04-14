@@ -21,8 +21,10 @@ import (
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
 )
 
+// const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
 const pythonServerDev = "http://localhost:8000/generate-quiz"
-const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
+
+// const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
 
 func normalizeTopic(topic string) string {
 	topic = strings.ToLower(strings.TrimSpace(topic))
@@ -35,7 +37,6 @@ func normalizeTopic(topic string) string {
 
 func GenerateQuiz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Initialize logger with prefix for clarity
 		logger := log.New(log.Writer(), "[GenerateQuiz] ", log.LstdFlags)
 
 		if r.Method != http.MethodPost {
@@ -60,11 +61,11 @@ func GenerateQuiz() http.HandlerFunc {
 			return
 		}
 
-		// Normalize topic
-		normalizedTopic := normalizeTopic(quizRequest.Topic)
-		quizRequest.Topic = normalizedTopic
+		// Normalize topic and difficulty
+		quizRequest.Topic = normalizeTopic(quizRequest.Topic)
+		quizRequest.Difficulty = strings.ToLower(quizRequest.Difficulty) // Ensure "medium", not "Medium"
 
-		// Call Python FastAPI service
+		// Marshal struct
 		jsonData, err := json.Marshal(quizRequest)
 		if err != nil {
 			logger.Printf("Failed to marshal quizRequest: %v", err)
@@ -72,7 +73,10 @@ func GenerateQuiz() http.HandlerFunc {
 			return
 		}
 
-		resp, err := http.Post(pythonServerProduction, "application/json", bytes.NewBuffer(jsonData))
+		logger.Printf("Sending to FastAPI: %s", string(jsonData))
+
+		// Call FastAPI
+		resp, err := http.Post(pythonServerDev, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
 			logger.Printf("Failed to call FastAPI: %v", err)
 			http.Error(w, "Failed to generate quiz", http.StatusInternalServerError)
@@ -80,7 +84,7 @@ func GenerateQuiz() http.HandlerFunc {
 		}
 		defer resp.Body.Close()
 
-		// Read and log FastAPI response (minimal)
+		// Log status and body
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logger.Printf("Failed to read FastAPI response: %v", err)
@@ -88,31 +92,35 @@ func GenerateQuiz() http.HandlerFunc {
 			return
 		}
 
-		// Decode response
-		var data []interface{}
-		if err := json.Unmarshal(body, &data); err != nil {
+		logger.Printf("FastAPI Status: %d", resp.StatusCode)
+		logger.Printf("FastAPI Response: %s", string(body))
+
+		// Check status
+		if resp.StatusCode != http.StatusOK {
+			logger.Printf("FastAPI non-200 status: %d", resp.StatusCode)
+			http.Error(w, fmt.Sprintf("Quiz service error: %s", string(body)), resp.StatusCode)
+			return
+		}
+
+		// Decode response as object
+		var responseData map[string]interface{}
+		if err := json.Unmarshal(body, &responseData); err != nil {
 			logger.Printf("Failed to decode FastAPI response: %v", err)
 			http.Error(w, "Invalid response from quiz service", http.StatusInternalServerError)
 			return
 		}
 
-		// Log response summary (avoid full dump unless needed)
-		if len(data) != 2 {
-			logger.Printf("Invalid response format: got %d elements", len(data))
-			http.Error(w, "Invalid quiz response", http.StatusInternalServerError)
-			return
-		}
-
-		ok, isOkBool := data[0].(map[string]interface{})["ok"].(bool)
+		// Validate response
+		ok, isOkBool := responseData["ok"].(bool)
 		if !isOkBool {
-			logger.Printf("Invalid 'ok' field in response")
+			logger.Printf("Invalid or missing 'ok' field")
 			http.Error(w, "Invalid quiz response", http.StatusInternalServerError)
 			return
 		}
 
 		if !ok {
 			errorMsg := "Quiz generation failed"
-			if errors, ok := data[1].([]interface{}); ok && len(errors) > 0 {
+			if errors, ok := responseData["data"].([]interface{}); ok && len(errors) > 0 {
 				if msg, ok := errors[0].(string); ok {
 					errorMsg = msg
 				}
@@ -122,18 +130,14 @@ func GenerateQuiz() http.HandlerFunc {
 			return
 		}
 
-		// Check questions array
-		questions, isQuestionsArray := data[1].([]interface{})
+		questions, isQuestionsArray := responseData["data"].([]interface{})
 		if !isQuestionsArray || len(questions) == 0 {
-			logger.Printf("No quiz questions generated: questions=%v", data[1])
+			logger.Printf("No quiz questions generated")
 			http.Error(w, "No quiz questions available", http.StatusInternalServerError)
 			return
 		}
 
-		// Log success (minimal)
 		logger.Printf("Generated %d quiz questions", len(questions))
-
-		// Send questions to frontend (assuming frontend expects [questions])
 		respData := response.CreateResponse(questions, 200, "Quiz generated successfully")
 		response.WriteResponse(w, respData)
 	}
