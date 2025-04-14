@@ -21,8 +21,8 @@ import (
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
 )
 
-// const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
-const pythonServerDev = "http://localhost:8000/generate-quiz"
+const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
+//const pythonServerDev = "http://localhost:8000/generate-quiz"
 
 // const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
 
@@ -76,7 +76,7 @@ func GenerateQuiz() http.HandlerFunc {
 		logger.Printf("Sending to FastAPI: %s", string(jsonData))
 
 		// Call FastAPI
-		resp, err := http.Post(pythonServerDev, "application/json", bytes.NewBuffer(jsonData))
+		resp, err := http.Post(pythonServerProduction, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
 			logger.Printf("Failed to call FastAPI: %v", err)
 			http.Error(w, "Failed to generate quiz", http.StatusInternalServerError)
