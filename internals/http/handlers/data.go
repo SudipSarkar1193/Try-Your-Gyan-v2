@@ -50,26 +50,22 @@ func GenerateQuiz() http.HandlerFunc {
 
 		}
 
-		var quizRequest types.QuizRequest;
+		var quizRequest types.QuizRequest
 
-		quizRequest.UserID = int64(userID);
+		quizRequest.UserID = int64(userID)
 
 		if err := json.NewDecoder(r.Body).Decode(&quizRequest); err != nil {
 			http.Error(w, fmt.Sprintf("failed to decode JSON: %v", err.Error()), http.StatusInternalServerError)
 			return
-		} else {
-			log.Println("No error !")
-		}
-
-		
+		} 
 
 		// Normalize topic (example implementation)
-		normalizedTopic := normalizeTopic(quizRequest.Topic) 
+		normalizedTopic := normalizeTopic(quizRequest.Topic)
 		quizRequest.Topic = normalizedTopic
 
 		// Call Python FastAPI service
 		jsonData, err := json.Marshal(quizRequest)
-		if err !=nil {
+		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to Marshal 'quizRequest': %v", err.Error()), http.StatusInternalServerError)
 			return
 		}
