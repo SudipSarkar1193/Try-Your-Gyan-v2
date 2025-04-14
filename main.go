@@ -42,7 +42,7 @@ func getRoutes(db *sql.DB, client *auth.Client) []Route {
 		{"/api/users/update-profile-pic", "PUT", handlers.UpdateProfilePic(db), true},
 		{"/api/users/verify-email", "POST", handlers.VerifyEmailToUpdate(db, client), true},
 		{"/api/users/update-profile", "PUT", handlers.UpdateUserDetails(db), true},
-		{"/api/quiz/generate", "POST", handlers.GenerateQuiz(), false},
+		{"/api/quiz/generate", "POST", handlers.GenerateQuiz(), true},
 		{"/api/quiz/new", "POST", handlers.CreateQuizInDatabase(db), true},
 		{"/api/quiz/questions/new", "POST", handlers.InsertQuestions(db), true},
 		{"/api/quiz/quizzes", "GET", handlers.GetUserQuizzesHandler(db), true},
@@ -54,82 +54,81 @@ func getRoutes(db *sql.DB, client *auth.Client) []Route {
 
 // Register routes dynamically using Gorilla Mux
 func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
-    for _, route := range getRoutes(db, client) {
-        handler := route.Handler
-        if route.Auth {
-            handler = middlewares.AuthMiddleware(handler)
-        }
-        router.HandleFunc(route.Path, handler).Methods(route.Method) // Or .Methods(route.Method, "OPTIONS")
-        log.Printf("Registered route: %s [%s]", route.Path, route.Method)
-    }
+	for _, route := range getRoutes(db, client) {
+		handler := route.Handler
+		if route.Auth {
+			handler = middlewares.AuthMiddleware(handler)
+		}
+		router.HandleFunc(route.Path, handler).Methods(route.Method) // Or .Methods(route.Method, "OPTIONS")
+		log.Printf("Registered route: %s [%s]", route.Path, route.Method)
+	}
 }
 
 func main() {
-    cfg := config.MustLoad()
-    db := database.ConnectToDatabase(cfg.PsqlInfo)
-    if db == nil {
-        log.Fatal("Database connection failed")
-    }
+	cfg := config.MustLoad()
+	db := database.ConnectToDatabase(cfg.PsqlInfo)
+	if db == nil {
+		log.Fatal("Database connection failed")
+	}
 
-    client := handlers.InitializeFirebaseApp()
-    if client == nil {
-        log.Fatal("Firebase initialization failed")
-    }
+	client := handlers.InitializeFirebaseApp()
+	if client == nil {
+		log.Fatal("Firebase initialization failed")
+	}
 
-    origins := []string{"https://try-your-gyan.vercel.app", "http://localhost:5173"}
-    if localOrigin := os.Getenv("CORS_LOCAL_ORIGIN"); localOrigin != "" {
-        origins = append(origins, localOrigin)
-    }
-    
-    c := cors.New(cors.Options{
-        AllowedOrigins:   origins,
-        AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-        AllowedHeaders:   []string{"Content-Type", "Authorization", "userID"},
-        AllowCredentials: true,
-        Debug:            false, // Back to false
-    })
+	origins := []string{"https://try-your-gyan.vercel.app", "http://localhost:5173"}
+	if localOrigin := os.Getenv("CORS_LOCAL_ORIGIN"); localOrigin != "" {
+		origins = append(origins, localOrigin)
+	}
 
-    router := mux.NewRouter()
-    registerRoutes(router, db, client)
+	c := cors.New(cors.Options{
+		AllowedOrigins:   origins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "userID"},
+		AllowCredentials: true,
+		Debug:            false, // Back to false
+	})
 
-    router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        if err := db.Ping(); err != nil {
-            w.WriteHeader(http.StatusInternalServerError)
-            w.Write([]byte("Database unavailable"))
-            return
-        }
-        w.WriteHeader(http.StatusOK)
-        w.Write([]byte("OK"))
-    })
+	router := mux.NewRouter()
+	registerRoutes(router, db, client)
 
-    handler := c.Handler(router)
-    handler = middlewares.CoopMiddleware(handler)
+	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.Ping(); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Database unavailable"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
 
-    server := http.Server{
-        Addr:    cfg.Addr,
-        Handler: handler,
-    }
+	handler := c.Handler(router)
+	handler = middlewares.CoopMiddleware(handler)
 
-    done := make(chan os.Signal, 1)
-    signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	server := http.Server{
+		Addr:    cfg.Addr,
+		Handler: handler,
+	}
 
-    go func() {
-        slog.Info("Server starting at", slog.String("PORT", cfg.Addr))
-        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-            log.Fatal("Failed to start server:", err)
-        }
-    }()
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-    <-done
-    slog.Info("Shutting down the server...")
+	go func() {
+		slog.Info("Server starting at", slog.String("PORT", cfg.Addr))
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Failed to start server:", err)
+		}
+	}()
 
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	<-done
+	slog.Info("Shutting down the server...")
 
-    if err := server.Shutdown(ctx); err != nil {
-        slog.Error("Failed to shut down server", slog.String("error", err.Error()))
-    } else {
-        slog.Info("Server shut down successfully")
-    }
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		slog.Error("Failed to shut down server", slog.String("error", err.Error()))
+	} else {
+		slog.Info("Server shut down successfully")
+	}
 }
-

@@ -23,10 +23,10 @@ type Config struct {
 
 // Load configuration from environment variables or a YAML file
 func MustLoad() *Config {
-	// Attempt to load environment variables from a .env file (for local development)
-	// if err := LoadEnvFile(".env"); err != nil {
-	// 	fmt.Println("Warning: Could not load .env file:", err)
-	// }
+	//Attempt to load environment variables from a .env file (for local development)
+	if err := LoadEnvFile(".env"); err != nil {
+		log.Println("Warning: Could not load .env file:", err)
+	}
 
 	// Attempt to load configuration from environment variables first
 	var cfg Config

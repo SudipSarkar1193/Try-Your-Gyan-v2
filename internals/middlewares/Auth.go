@@ -26,11 +26,11 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		// log.Println()
 
 		// Skip auth for OPTIONS (preflight) requests
-        if r.Method == http.MethodOptions {
-            next.ServeHTTP(w, r) // Pass to next handler or let cors handle it
-            return
-        }
-		
+		if r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r) // Pass to next handler or let cors handle it
+			return
+		}
+
 		var jwtSecret = []byte(os.Getenv("JWT_SECRET_KEY"))
 		authHeader := r.Header.Get("Authorization")
 

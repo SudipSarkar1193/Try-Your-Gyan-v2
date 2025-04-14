@@ -65,7 +65,7 @@ func HandleFirebaseAuth(db *sql.DB) http.HandlerFunc {
 			IsNewUser  bool   `json:"isNewUser"`
 			ProfileImg string `json:"profileImg"`
 		}
-		
+
 		log.Printf("DEBUG : requestData : %+v\n", requestData)
 
 		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {

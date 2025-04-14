@@ -1,21 +1,36 @@
 package handlers
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/database"
-	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/generateQuiz"
+	//"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/generateQuiz"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/response"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
 )
+
+const pythonServerDev = "http://localhost:8000/generate-quiz"
+const pythonServerProduction = ""
+
+func normalizeTopic(topic string) string {
+	topic = strings.ToLower(strings.TrimSpace(topic))
+	phrasesToRemove := []string{"generate me a quiz on", "create a quiz about", "quiz on", "a quiz on"}
+	for _, phrase := range phrasesToRemove {
+		topic = strings.ReplaceAll(topic, phrase, "")
+	}
+	return strings.TrimSpace(topic)
+}
 
 func GenerateQuiz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -24,23 +39,63 @@ func GenerateQuiz() http.HandlerFunc {
 			http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
 			return
 		}
+		fmt.Println("INSIDE")
+		userIDStr := r.Header.Get("userID")
+		userID, err := strconv.Atoi(userIDStr)
 
-		var quizRequest types.QuizRequest
+		if err != nil {
+			fmt.Println("Error converting userID:", err)
+			http.Error(w, fmt.Sprintf("Invalid verification token : %v", err.Error()), http.StatusBadRequest)
+			return
+
+		}
+
+		var quizRequest types.QuizRequest;
+
+		quizRequest.UserID = int64(userID);
 
 		if err := json.NewDecoder(r.Body).Decode(&quizRequest); err != nil {
 			http.Error(w, fmt.Sprintf("failed to decode JSON: %v", err.Error()), http.StatusInternalServerError)
 			return
+		} else {
+			log.Println("No error !")
 		}
 
-		data, err := generateQuiz.GenerateQuiz(&quizRequest)
+		
 
+		// Normalize topic (example implementation)
+		normalizedTopic := normalizeTopic(quizRequest.Topic) 
+		quizRequest.Topic = normalizedTopic
+
+		// Call Python FastAPI service
+		jsonData, err := json.Marshal(quizRequest)
+		if err !=nil {
+			http.Error(w, fmt.Sprintf("failed to Marshal 'quizRequest': %v", err.Error()), http.StatusInternalServerError)
+			return
+		}
+
+		resp, err := http.Post(pythonServerDev, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to generate Quiz: %v", err.Error()), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("failed to call quiz service: %v", err.Error()), http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		var data interface{}
+		json.NewDecoder(resp.Body).Decode(&data)
+
+		// Check for error structure
+		if dataMap, ok := data.(map[string]interface{}); ok {
+			if detail, exists := dataMap["detail"]; exists {
+				if detailStr, ok := detail.(string); ok && detailStr == "Internal server error" {
+					http.Error(w, "Quiz generation failed", http.StatusInternalServerError)
+					return
+				}
+			}
 		}
 
-		resp := response.CreateResponse(data, 200, "Quiz generated successfully")
-
-		response.WriteResponse(w, resp)
+		respData := response.CreateResponse(data, 200, "Quiz generated successfully")
+		response.WriteResponse(w, respData)
 	}
 }
 

@@ -13,6 +13,7 @@ type User struct {
 }
 
 type QuizRequest struct {
+	UserID       int64 `json:"user_id"`
 	Topic        string `json:"topic"`
 	NumQuestions int    `json:"num_questions"`
 	Difficulty   string `json:"difficulty"`
