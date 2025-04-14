@@ -93,7 +93,7 @@ func GenerateQuiz() http.HandlerFunc {
 		}
 
 		logger.Printf("FastAPI Status: %d", resp.StatusCode)
-		logger.Printf("FastAPI Response: %s", string(body))
+		//logger.Printf("FastAPI Response: %s", string(body))
 
 		// Check status
 		if resp.StatusCode != http.StatusOK {
