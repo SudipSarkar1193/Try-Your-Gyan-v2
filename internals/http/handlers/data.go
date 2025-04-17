@@ -21,10 +21,12 @@ import (
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
 )
 
-const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
-//const pythonServerDev = "http://localhost:8000/generate-quiz"
+// const pythonServerProduction_old = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
 
-// const pythonServerProduction = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
+// const pythonServerDev = "http://localhost:8000/generate-quiz"
+
+const pythonServerProduction = "https://try-your-gyan-quiz-generation-fastapi.onrender.com/generate-quiz"
+
 
 func normalizeTopic(topic string) string {
 	topic = strings.ToLower(strings.TrimSpace(topic))
