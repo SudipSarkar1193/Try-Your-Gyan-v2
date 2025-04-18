@@ -34,3 +34,11 @@ try-your-gyan-firebase-adminsdk-ixof8-d775de9c44.json
 test.go
 
 check.txt
+
+
+# Root .gitignore
+tryyourgyan.exe
+quizlogic/venv/
+quizlogic/__pycache__/
+.env
+quizlogic/.env

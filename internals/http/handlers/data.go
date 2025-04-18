@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"os/exec"
 
 	"github.com/go-playground/validator/v10"
 
@@ -19,13 +20,15 @@ import (
 	//"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/generateQuiz"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/response"
 	"github.com/SudipSarkar1193/Try-Your-Gyan-v2.git/internals/types"
+
+	
 )
 
 // const pythonServerProduction_old = "https://try-your-gyan-quiz-generation.onrender.com/generate-quiz"
 
 // const pythonServerDev = "http://localhost:8000/generate-quiz"
 
-const pythonServerProduction = "https://try-your-gyan-quiz-generation-fastapi.onrender.com/generate-quiz"
+//const pythonServerProduction = "https://try-your-gyan-quiz-generation-fastapi.onrender.com/generate-quiz"
 
 
 func normalizeTopic(topic string) string {
@@ -65,9 +68,9 @@ func GenerateQuiz() http.HandlerFunc {
 
 		// Normalize topic and difficulty
 		quizRequest.Topic = normalizeTopic(quizRequest.Topic)
-		quizRequest.Difficulty = strings.ToLower(quizRequest.Difficulty) // Ensure "medium", not "Medium"
+		quizRequest.Difficulty = strings.ToLower(quizRequest.Difficulty)
 
-		// Marshal struct
+		// Marshal struct to JSON
 		jsonData, err := json.Marshal(quizRequest)
 		if err != nil {
 			logger.Printf("Failed to marshal quizRequest: %v", err)
@@ -75,39 +78,56 @@ func GenerateQuiz() http.HandlerFunc {
 			return
 		}
 
-		logger.Printf("Sending to FastAPI: %s", string(jsonData))
+		logger.Printf("Executing Python quiz generation with input: %s", string(jsonData))
 
-		// Call FastAPI
-		resp, err := http.Post(pythonServerProduction, "application/json", bytes.NewBuffer(jsonData))
+		// Execute Python script as a subprocess
+		pythonPath := "quizlogic/venv/Scripts/python.exe" // Adjust for Windows: "quizlogic/venv/Scripts/python.exe"
+		scriptPath := "quizlogic/app.py"
+		cmd := exec.Command(pythonPath, scriptPath)
+
+		// Set up stdin for Python script
+		stdin, err := cmd.StdinPipe()
 		if err != nil {
-			logger.Printf("Failed to call FastAPI: %v", err)
-			http.Error(w, "Failed to generate quiz", http.StatusInternalServerError)
-			return
-		}
-		defer resp.Body.Close()
-
-		// Log status and body
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Printf("Failed to read FastAPI response: %v", err)
-			http.Error(w, "Failed to read response", http.StatusInternalServerError)
+			logger.Printf("Failed to create stdin pipe: %v", err)
+			http.Error(w, "Failed to initialize quiz generation", http.StatusInternalServerError)
 			return
 		}
 
-		logger.Printf("FastAPI Status: %d", resp.StatusCode)
-		//logger.Printf("FastAPI Response: %s", string(body))
+		// Set up stdout and stderr
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
 
-		// Check status
-		if resp.StatusCode != http.StatusOK {
-			logger.Printf("FastAPI non-200 status: %d", resp.StatusCode)
-			http.Error(w, fmt.Sprintf("Quiz service error: %s", string(body)), resp.StatusCode)
+		// Start the command
+		if err := cmd.Start(); err != nil {
+			logger.Printf("Failed to start Python script: %v", err)
+			http.Error(w, "Failed to start quiz generation", http.StatusInternalServerError)
 			return
 		}
+
+		// Write JSON input to Python script's stdin
+		if _, err := stdin.Write(jsonData); err != nil {
+			logger.Printf("Failed to write to Python stdin: %v", err)
+			http.Error(w, "Failed to send quiz request", http.StatusInternalServerError)
+			return
+		}
+		stdin.Close()
+
+		// Wait for the command to complete
+		if err := cmd.Wait(); err != nil {
+			logger.Printf("Python script failed: %v, stderr: %s", err, stderr.String())
+			http.Error(w, fmt.Sprintf("Quiz generation error: %s", stderr.String()), http.StatusInternalServerError)
+			return
+		}
+
+		// Read Python script output
+		body := stdout.Bytes()
+		logger.Printf("Python script output: %s", string(body))
 
 		// Decode response as object
 		var responseData map[string]interface{}
 		if err := json.Unmarshal(body, &responseData); err != nil {
-			logger.Printf("Failed to decode FastAPI response: %v", err)
+			logger.Printf("Failed to decode Python response: %v", err)
 			http.Error(w, "Invalid response from quiz service", http.StatusInternalServerError)
 			return
 		}
@@ -127,7 +147,7 @@ func GenerateQuiz() http.HandlerFunc {
 					errorMsg = msg
 				}
 			}
-			logger.Printf("FastAPI error: %s", errorMsg)
+			logger.Printf("Python script error: %s", errorMsg)
 			http.Error(w, errorMsg, http.StatusInternalServerError)
 			return
 		}
