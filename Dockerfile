@@ -1,5 +1,5 @@
 # Stage 1: Build Go application
-FROM golang:1.21 AS go-builder
+FROM golang:1.23 AS go-builder
 
 WORKDIR /app
 
@@ -21,6 +21,7 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Go binary from go-builder stage
@@ -41,5 +42,3 @@ EXPOSE 8080
 
 # Command to run Go application
 CMD ["./tryyourgyan"]
-
-
