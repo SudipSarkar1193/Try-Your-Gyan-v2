@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"os/exec"
+	"runtime"
+	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
 
@@ -80,9 +82,16 @@ func GenerateQuiz() http.HandlerFunc {
 
 		logger.Printf("Executing Python quiz generation with input: %s", string(jsonData))
 
+		// Determine pythonPath dynamically based on OS
+		var pythonPath string
+		if runtime.GOOS == "windows" {
+			pythonPath = filepath.Join("quizlogic", "venv", "Scripts", "python.exe")
+		} else {
+			pythonPath = filepath.Join("quizlogic", "venv", "bin", "python")
+		}
+		scriptPath := filepath.Join("quizlogic", "app.py")
+
 		// Execute Python script as a subprocess
-		pythonPath := "quizlogic/venv/Scripts/python.exe" // Adjust for Windows: "quizlogic/venv/Scripts/python.exe"
-		scriptPath := "quizlogic/app.py"
 		cmd := exec.Command(pythonPath, scriptPath)
 
 		// Set up stdin for Python script

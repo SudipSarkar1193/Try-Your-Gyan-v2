@@ -41,3 +41,5 @@ EXPOSE 8080
 
 # Command to run Go application
 CMD ["./tryyourgyan"]
+
+
