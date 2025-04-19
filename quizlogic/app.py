@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 def main():
     try:
+        logger.info("In Python Program...")
+
         # Log memory usage before processing
         process = psutil.Process()
         mem_info = process.memory_info()
