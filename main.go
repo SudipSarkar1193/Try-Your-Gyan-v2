@@ -9,7 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"encoding/json"
 
+	"fmt"
 	"log/slog"
 
 	"firebase.google.com/go/v4/auth"
@@ -33,6 +35,36 @@ type Route struct {
 // Function to return all API routes
 func getRoutes(db *sql.DB, client *auth.Client) []Route {
 	return []Route{
+		{"/", "GET", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+				return
+			}
+		
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+		
+			resp := map[string]string{
+				"status": "ok",
+				"message":"Welcome to try-your-gyan from '/'",
+			}
+			json.NewEncoder(w).Encode(resp)
+		}, false},
+		{"/health", "GET", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				http.Error(w, fmt.Sprintf("%v HTTP method is not allowed", r.Method), http.StatusBadRequest)
+				return
+			}
+		
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+		
+			resp := map[string]string{
+				"status": "ok",
+				"message":"Welcome to try-your-gyan from '/health'",
+			}
+			json.NewEncoder(w).Encode(resp)
+		}, false},
 		{"/api/users/new", "POST", handlers.New(db), false},
 		{"/api/users/login", "POST", handlers.Login(db), false},
 		{"/api/users/auth/google", "POST", handlers.HandleFirebaseAuth(db), false},
