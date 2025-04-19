@@ -105,7 +105,8 @@ def generate_quiz(request_data):
         logger.info("Invoking LLM with prompt")
         # Synchronous invocation
         response = llm.invoke(formatted_prompt)
-        logger.info(f"LLM response raw content: {response.content}")
+
+        # logger.info(f"LLM response raw content: {response.content}")
 
         parsed_response = output_parser.parse(response.content)
         logger.info(f"Parsed response: {parsed_response}")

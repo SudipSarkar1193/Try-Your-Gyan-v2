@@ -17,20 +17,14 @@ logger = logging.getLogger(__name__)
 if os.getenv("RENDER") != "true":
     load_dotenv()
 
-# Debug: Print two environment variables
-logger.info("-------------------------------------")
-logger.info("Environment variables for debugging:")
-logger.info(f"DB_USER: {os.getenv('user')}")
-logger.info(f"DB_NAME: {os.getenv('dbname')}")
-logger.info(f"------------------------------------")
 
 # Database configuration
 DB_CONFIG = {
-    'user': os.getenv("user"),
-    'password': os.getenv("password"),
-    'host': os.getenv("host"),
-    'port': os.getenv("port"),
-    'dbname': os.getenv("dbname")
+    'user': os.getenv("user_py"),
+    'password': os.getenv("password_py"),
+    'host': os.getenv("host_py"),
+    'port': os.getenv("port_py"),
+    'dbname': os.getenv("dbname_py")
 }
 
 class DatabaseConnection:
@@ -40,7 +34,11 @@ class DatabaseConnection:
     def __enter__(self):
         try:
             self.connection = psycopg2.connect(**DB_CONFIG)
+            logger.info("*************************************")
+            logger.info("")
             logger.info("Database connection established")
+            logger.info("")
+            logger.info("************************************")
             return self.connection
         except Exception as e:
             logger.error(f"Failed to connect to database: {e}")
