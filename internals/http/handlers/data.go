@@ -122,11 +122,16 @@ func GenerateQuiz() http.HandlerFunc {
 		}
 		stdin.Close()
 
-		// Wait for the command to complete
+		// Wait for the command to complete and check if err
 		if err := cmd.Wait(); err != nil {
 			logger.Printf("Python script failed: %v, stderr: %s", err, stderr.String())
 			http.Error(w, fmt.Sprintf("Quiz generation error: %s", stderr.String()), http.StatusInternalServerError)
 			return
+		}
+
+		// Log stderr even on success
+		if stderr.Len() > 0 {
+			logger.Printf("Python script stderr: %s", stderr.String())
 		}
 
 		// Read Python script output

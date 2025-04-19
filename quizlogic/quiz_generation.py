@@ -7,9 +7,14 @@ from db import get_past_questions
 import json
 import re
 import logging
+import sys
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stderr,
+    format="%(filename)s - %(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Define the expected JSON structure

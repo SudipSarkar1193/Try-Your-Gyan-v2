@@ -3,11 +3,13 @@ import logging
 import sys
 import psutil
 from quiz_generation import generate_quiz
+from db import get_past_questions
 
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    stream=sys.stderr,
+    format="%(filename)s - %(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,12 @@ def main():
             sys.stdout.flush()
             return
 
-        # Generate quiz
+        # Fetch past questions to inform quiz generation
+        past_questions = get_past_questions(user_id, topic)
+        logger.info(f"Retrieved {len(past_questions)} past questions for user {user_id}, topic {topic}")
+
+        # Pass past questions to quiz generation (adjust generate_quiz as needed)
+        data["past_questions"] = past_questions
         result = generate_quiz(data)
         logger.info(f"Generated quiz: {len(result.get('data', []))} questions")
 

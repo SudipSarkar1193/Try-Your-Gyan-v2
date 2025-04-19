@@ -3,13 +3,26 @@ import os
 import dotenv
 from dotenv import load_dotenv
 import logging
+import sys
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+
+#Config logging
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stderr,
+    format="%(filename)s - %(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
-# Load .env
-load_dotenv()
+if os.getenv("RENDER") != "true":
+    load_dotenv()
+
+# Debug: Print two environment variables
+logger.info("-------------------------------------")
+logger.info("Environment variables for debugging:")
+logger.info(f"DB_USER: {os.getenv('user')}")
+logger.info(f"DB_NAME: {os.getenv('dbname')}")
+logger.info(f"------------------------------------")
 
 # Database configuration
 DB_CONFIG = {
@@ -60,9 +73,9 @@ def get_past_questions(user_id: int, topic: str) -> list:
                 
     except Exception as e:
         logger.error(f"Database error for user {user_id}, topic {topic}: {str(e)}")
-        return []  # Return empty list instead of raising exception for better resilience
+        return []  
 
-# Test function (optional)
+# Testing
 def test_db_connection():
     try:
         with DatabaseConnection() as conn:
