@@ -80,7 +80,7 @@ def generate_quiz(request_data):
             ### Instructions:
             1. Create an array of quiz questions in this JSON format: {format}
             2. Each question must include: serial_number (string), question, options (4 strings), correctAnswer, description.
-            3. Use a creative twist (e.g., real-world scenarios, analogies) to add variety. Random seed: {seed}.
+            3. Use a randomization approach with the seed provided: {seed}.
             4. Do NOT repeat these past questions: {past}.
             
             ### Guidelines:
