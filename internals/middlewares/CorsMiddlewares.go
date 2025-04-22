@@ -11,9 +11,9 @@ func CoopMiddleware(next http.Handler) http.Handler {
 
 		//DEBUG :
 
-		// log.Println()
-		// log.Println("DEBUG : Inside CoopMiddleware")
-		// log.Println()
+		log.Println()
+		log.Println("DEBUG : Inside CoopMiddleware")
+		log.Println()
 
 		// Set COOP header to allow popups for Firebase Auth
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")

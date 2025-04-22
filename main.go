@@ -91,7 +91,8 @@ func registerRoutes(router *mux.Router, db *sql.DB, client *auth.Client) {
 		if route.Auth {
 			handler = middlewares.AuthMiddleware(handler)
 		}
-		router.HandleFunc(route.Path, handler).Methods(route.Method) // Or .Methods(route.Method, "OPTIONS")
+		router.HandleFunc(route.Path, handler).Methods(route.Method, "OPTIONS")
+		
 		log.Printf("Registered route: %s [%s]", route.Path, route.Method)
 	}
 }
