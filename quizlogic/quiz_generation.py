@@ -57,7 +57,7 @@ def generate_quiz(request_data):
 
         # Initialize Gemini (synchronous version)
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             google_api_key=os.getenv("API_KEY"),
             temperature=0.9,
         )
